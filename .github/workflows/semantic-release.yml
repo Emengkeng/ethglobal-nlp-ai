@@ -29,7 +29,6 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --no-audit
-          npm install -D @semantic-release/changelog @semantic-release/git @semantic-release/npm semantic-release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           
