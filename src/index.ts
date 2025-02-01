@@ -1,34 +1,31 @@
-import { HumanMessage } from '@langchain/core/messages';
+import { EnvironmentConfig } from './config/environment';
+import { AgentService } from './services/AgentService';
+import { ChatController } from './controllers/ChatController';
+import { AutoModeController } from './controllers/AutoModeController';
 
-export class AutoModeController {
-  static async run(agent: any, config: any, interval = 10): Promise<void> {
-    console.log('Starting autonomous mode...');
+async function main() {
+  try {
+    EnvironmentConfig.initialize();
+    
+    const { agent, config } = await AgentService.initialize();
+    const chatController = new ChatController();
+    const mode = await chatController.chooseMode();
 
-    while (true) {
-      try {
-        const thought =
-          'Be creative and do something interesting on the blockchain. ' +
-          'Choose an action or set of actions and execute it that highlights your abilities.';
-
-        const stream = await agent.stream(
-          { messages: [new HumanMessage(thought)] },
-          config
-        );
-
-        for await (const chunk of stream) {
-          if ('agent' in chunk) {
-            console.log(chunk.agent.messages[0].content);
-          } else if ('tools' in chunk) {
-            console.log(chunk.tools.messages[0].content);
-          }
-          console.log('-------------------');
-        }
-
-        await new Promise(resolve => setTimeout(resolve, interval * 1000));
-      } catch (error) {
-        console.error('Error in autonomous mode:', error);
-        throw error;
-      }
+    if (mode === 'chat') {
+      await chatController.runChatMode(agent, config);
+    } else {
+      await AutoModeController.run(agent, config);
     }
+  } catch (error) {
+    console.error('Fatal error:', error);
+    process.exit(1);
   }
+}
+
+if (require.main === module) {
+  console.log('Starting Agent...');
+  main().catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
 }
