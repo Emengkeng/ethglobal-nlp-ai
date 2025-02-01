@@ -1,20 +1,33 @@
+import { OpenAI } from 'openai';
 import { CdpAgentkit } from '@coinbase/cdp-agentkit-core';
 import { CdpToolkit } from '@coinbase/cdp-langchain';
-import { ChatOpenAI } from '@langchain/openai';
 import { MemorySaver } from '@langchain/langgraph';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
+import { ChatOpenAI } from '@langchain/openai';
 import { WalletConfig, AgentConfig } from '../types';
 import { EnvironmentConfig } from '../config/environment';
 import { WalletService } from './WalletService';
+import { SystemMessage } from '@langchain/core/messages';
+import { MessagesAnnotation } from '@langchain/langgraph';
 
 export class AgentService {
   static async initialize() {
     try {
-      const llm = new ChatOpenAI({
-        model: 'grok-beta',
+      // Initialize OpenAI client with X.AI configuration
+      const openAIConfig = {
         apiKey: EnvironmentConfig.xAiApiKey,
+        baseURL: 'https://api.x.ai/v1'
+      };
+
+      // Use LangChain's ChatOpenAI wrapper
+      const llm = new ChatOpenAI({
+        modelName: 'grok-2-1212',
+        openAIApiKey: openAIConfig.apiKey,
         configuration: {
-          baseURL: 'https://api.x.ai/v1'
+          baseURL: openAIConfig.baseURL,
+          defaultHeaders: {
+            'Content-Type': 'application/json'
+          }
         }
       });
 
@@ -34,11 +47,18 @@ export class AgentService {
         configurable: { thread_id: 'CDP Agentkit Chatbot Example!' }
       };
 
+      // Create state modifier function that works with the full graph state
+      const stateModifier = async (state: typeof MessagesAnnotation.State) => {
+        const systemMessage = new SystemMessage(this.getAgentPrompt());
+        return [systemMessage, ...state.messages];
+      };
+
+      // Create the agent with the state modifier
       const agent = createReactAgent({
         llm,
         tools,
         checkpointSaver: memory,
-        messageModifier: this.getAgentPrompt()
+        stateModifier
       });
 
       await WalletService.saveWalletData(await agentkit.exportWallet());
