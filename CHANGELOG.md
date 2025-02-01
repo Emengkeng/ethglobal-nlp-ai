@@ -1,3 +1,11 @@
+## [1.0.1](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.0.0...v1.0.1) (2025-02-01)
+
+
+### Bug Fixes
+
+* The modeGrok error of l expects a single  element per message ([db3a8ae](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/db3a8aee9a375f88de1a8df3927eda9f216756a6))
+* wrong main function in file ([405e4f8](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/405e4f874814861f259ca437d5fee7efd4cbe9eb))
+
 # 1.0.0 (2025-02-01)
 
 
