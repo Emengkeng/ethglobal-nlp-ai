@@ -154,4 +154,19 @@ export class SecureAgentContainer {
       this.config = state.config;
     }
   }
+  async cleanup(): Promise<void> {
+    try {
+      // Save current state
+      const state = await this.exportState();
+      await WalletService.saveWalletData(state.wallet);
+
+      // Close message queue connections
+      await this.messageQueue.cleanup();
+
+      console.log('Agent container cleanup completed');
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      throw error;
+    }
+  }
 }
