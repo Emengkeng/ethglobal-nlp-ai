@@ -89,4 +89,25 @@ export class MessageQueue {
       { persistent: true }
     );
   }
+
+  async cleanup(): Promise<void> {
+    try {
+      // Close channel if open
+      if (this.channel) {
+        await this.channel.close();
+        this.channel = undefined;
+      }
+
+      // Close connection if open
+      if (this.connection) {
+        await this.connection.close();
+        this.connection = undefined;
+      }
+
+      console.log('Message queue connections closed');
+    } catch (error) {
+      console.error('Error cleaning up message queue:', error);
+      throw error;
+    }
+  }
 }

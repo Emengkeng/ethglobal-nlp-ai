@@ -1,4 +1,4 @@
-import { SecureAgentContainer } from './SecureAgentContainer';
+import { SecureAgentContainer } from './infrastructure/agents/SecureAgentContainer';
 
 class AgentProcess {
   private container?: SecureAgentContainer;
