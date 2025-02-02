@@ -137,10 +137,10 @@ export class SecureAgentContainer {
     });
   }
 
-  private async exportState(): Promise<any> {
+  private async exportState(): Promise<{ wallet: string; config: any, timestamp: Number }> {
     const walletData = await WalletService.loadWalletData();
     return {
-      wallet: walletData,
+      wallet: walletData || '',
       config: this.config,
       timestamp: Date.now()
     };
