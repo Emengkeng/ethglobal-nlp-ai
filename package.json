@@ -15,7 +15,10 @@
     "@langchain/core": "^0.3.37",
     "@langchain/langgraph": "latest",
     "@langchain/openai": "^0.4.2",
+    "amqplib": "^0.10.5",
+    "dockerode": "^4.0.4",
     "dotenv": "^16.0.3",
+    "ioredis": "^5.4.2",
     "openai": "^4.82.0",
     "winston": "^3.8.2",
     "zod": "^3.21.4"
