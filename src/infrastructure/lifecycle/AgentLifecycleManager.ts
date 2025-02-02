@@ -1,6 +1,7 @@
 import Docker from 'dockerode';
 import { MessageQueue } from '../queue/MessageQueue';
 import Redis, { Redis as RedisClient } from 'ioredis';
+import { DockerDeployment } from '@/deployment/DockerDeployment';
 
 interface AgentState {
   userId: string;
@@ -31,6 +32,8 @@ export class AgentLifecycleManager {
   private docker: Docker;
   private redis: RedisClient;
   private messageQueue: MessageQueue;
+  private dockerDeployment: DockerDeployment;
+
 
   // Configurable timeouts
   private readonly INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -41,6 +44,8 @@ export class AgentLifecycleManager {
     this.docker = new Docker();
     this.redis = new Redis(process.env.REDIS_URL);
     this.messageQueue = new MessageQueue();
+
+    this.dockerDeployment = new DockerDeployment();
     
     // Start monitoring systems
     this.startActivityMonitor();
@@ -76,38 +81,18 @@ export class AgentLifecycleManager {
     const agentId = `agent-${userId}-${Date.now()}`;
     
     try {
-      const container = await this.docker.createContainer({
-        Image: 'trading-agent-image:latest',
-        name: `trading-agent-${agentId}`,
-        Env: [
-          `USER_ID=${userId}`,
-          `AGENT_ID=${agentId}`,
-          `REDIS_URL=${process.env.REDIS_URL}`,
-          `RABBITMQ_URL=${process.env.RABBITMQ_URL}`,
-          ...this.getEnvironmentVariables()
-        ],
-        HostConfig: {
-          AutoRemove: false,
-          Memory: 256 * 1024 * 1024,
-          MemorySwap: 512 * 1024 * 1024,
-          NanoCpus: 2 * 1000000000, // 2 CPU cores
-          RestartPolicy: {
-            Name: 'unless-stopped'
-          }
-        }
-      });
+      const containerId = await this.dockerDeployment.deployAgent(userId, agentId);
 
       const state: AgentState = {
         userId,
         agentId,
         status: 'starting',
         lastActivity: new Date(),
-        containerId: container.id,
+        containerId: containerId,
         createdAt: new Date()
       };
 
       await this.saveAgentState(state);
-      await container.start();
 
       // Wait for agent to be ready
       await this.waitForAgentReady(agentId);
