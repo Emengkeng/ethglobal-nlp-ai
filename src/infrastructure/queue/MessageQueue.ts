@@ -54,7 +54,7 @@ export class MessageQueue {
     await this.channel.assertQueue(queueName, { durable: true });
     await this.channel.bindQueue(queueName, this.exchangeName, `agent.${agentId}.*`);
 
-    await this.channel.consume(queueName, async (msg) => {
+    await this.channel.consume(queueName, async (msg: { content: { toString: () => string; }; fields: { redelivered: any; }; }) => {
       if (!msg) return;
       
       try {
