@@ -1,6 +1,6 @@
+import { Request, Response } from 'express';
 import { AgentLifecycleManager } from '../../infrastructure/lifecycle/AgentLifecycleManager';
 import { MessageQueue } from '../../infrastructure/queue/MessageQueue';
-import {ex}
 
 export class AgentController {
   private lifecycleManager: AgentLifecycleManager;
