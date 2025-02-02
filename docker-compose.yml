@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  trading-agent-gateway:
+    build: 
+      context: .
+      dockerfile: Dockerfile.gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - RABBITMQ_URL=amqp://rabbitmq
+    depends_on:
+      - rabbitmq
+
+  # For testing single agent instance
+  trading-agent:
+    build: .
+    environment:
+      - RABBITMQ_URL=amqp://rabbitmq
+      - USER_ID=test-user
+      - AGENT_ID=test-agent
+      - XAI_API_KEY=${XAI_API_KEY}
+      - CDP_API_KEY_NAME=${CDP_API_KEY_NAME}
+      - CDP_API_KEY_PRIVATE_KEY=${CDP_API_KEY_PRIVATE_KEY}
+    depends_on:
+      - rabbitmq
+      - trading-agent-gateway

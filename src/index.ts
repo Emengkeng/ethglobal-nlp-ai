@@ -1,31 +1,20 @@
-import { EnvironmentConfig } from './config/environment';
-import { AgentService } from './services/AgentService';
-import { ChatController } from './controllers/ChatController';
-import { AutoModeController } from './controllers/AutoModeController';
+import express from 'express';
+import { AgentController } from './api/controllers/AgentController';
 
 async function main() {
-  try {
-    EnvironmentConfig.initialize();
-    
-    const { agent, config } = await AgentService.initialize();
-    const chatController = new ChatController();
-    const mode = await chatController.chooseMode();
+  const app = express();
+  const controller = new AgentController();
 
-    if (mode === 'chat') {
-      await chatController.runChatMode(agent, config);
-    } else {
-      await AutoModeController.run(agent, config);
-    }
-  } catch (error) {
-    console.error('Fatal error:', error);
-    process.exit(1);
-  }
-}
+  app.use(express.json());
 
-if (require.main === module) {
-  console.log('Starting Agent...');
-  main().catch(error => {
-    console.error('Fatal error:', error);
-    process.exit(1);
+  // Routes
+  app.post('/agents/:agentId/messages', controller.handleMessage.bind(controller));
+
+  // Start server
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
   });
 }
+
+main().catch(console.error);
