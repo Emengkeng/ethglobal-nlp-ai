@@ -19,4 +19,4 @@ RUN npm run build
 ENV NODE_ENV=production
 
 # Start the agent container
-CMD ["node", "dist/main.js"]
+CMD ["node", "-r", "tsconfig-paths/register", "dist/main.js"]
