@@ -1,248 +1,197 @@
-# CDP Agent with Semantic Release
+# Secure Interactive Agent System
+
+## 📋 Table of Contents
+- [Overview](#overview)
+- [System Architecture](#system-architecture)
+- [Prerequisites](#prerequisites)
+- [Installation & Setup](#installation--setup)
+  - [Repository Cloning](#1-repository-cloning)
+  - [Dependency Installation](#2-dependency-installation)
+  - [Environment Configuration](#3-environment-configuration)
+- [Deployment Infrastructure](#deployment-infrastructure)
+  - [Docker Deployment](#-docker-deployment)
+  - [Key Deployment Components](#key-deployment-components)
+- [Running the System](#running-the-system)
+  - [Build Application](#1-build-application)
+  - [Start Interactive Agent](#2-start-interactive-agent)
+- [Project Structure](#project-structure)
+- [Development Workflow](#development-workflow)
+  - [Commit Message Convention](#commit-message-convention)
+  - [Semantic Release](#semantic-release)
+- [Security Principles](#security-principles)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Support](#support)
+- [License](#license)
 
 ## Overview
-This project implements a CDP (Coinbase Developer Platform) Agent with automated semantic versioning capabilities. It uses TypeScript and includes features for both interactive chat and autonomous blockchain interactions.
+A sophisticated, secure CDP (Coinbase Developer Platform) Agent system designed for isolated, interactive user experiences with robust deployment and infrastructure management.
 
-## Table of Contents
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Development](#development)
-- [CI/CD](#cicd)
-- [Contributing](#contributing)
-- [Troubleshooting](#troubleshooting)
+## System Architecture
 
-## Features
-- 🤖 CDP Agent integration for blockchain interactions
-- 💬 Interactive chat mode
-- 🔄 Autonomous operation mode
-- 📦 Automated semantic versioning
-- 📝 TypeScript support
-- 📊 Logging system
+### 🏗️ Core Components
+- **Interactive Agent**: Individual user interaction endpoint
+- **Secure Containerization**: Isolated deployment for each agent
+- **Infrastructure Management**: Docker, RabbitMQ, and Redis integration
+- **Semantic Versioning**: Automated release and versioning
 
 ## Prerequisites
+
+### 🖥️ System Requirements
 - Node.js (v20.x recommended)
-- npm (latest version)
-- GitHub account
-- npm account (for publishing)
-- CDP API credentials
+- Docker (latest version)
+- npm
+- RabbitMQ
+- Redis
+- GitHub Account
+- CDP API Credentials
 
-## Installation
+## Installation & Setup
 
-1. Clone the repository:
+### 1. Repository Cloning
 ```bash
 git clone <your-repo-url>
 cd <your-repo-name>
 ```
 
-2. Install dependencies:
+### 2. Dependency Installation
 ```bash
 npm install
 ```
 
-3. Create environment file:
+### 3. Environment Configuration
 ```bash
+# Copy environment template
 cp .env.example .env
+
+# Edit .env with your specific configurations
 ```
 
-4. Configure your environment variables:
+### 4. Required Environment Variables
 ```env
-XAI_API_KEY=your_api_key_here
-CDP_API_KEY_NAME=your_key_name_here
-CDP_API_KEY_PRIVATE_KEY=your_private_key_here
-NETWORK_ID=base-sepolia
-NODE_ENV=development
-LOG_LEVEL=info
-```
-
-## Configuration
-
-### Semantic Release
-The project uses semantic-release for automated versioning and publishing. Configuration is in `release.config.js`:
-
-```javascript
-module.exports = {
-  branches: ['main'],
-  plugins: [
-    '@semantic-release/commit-analyzer',
-    '@semantic-release/release-notes-generator',
-    '@semantic-release/changelog',
-    '@semantic-release/npm',
-    '@semantic-release/github',
-    '@semantic-release/git'
-  ]
-}
-```
-
-### GitHub Actions
-Automated releases are handled by GitHub Actions workflow in `.github/workflows/release.yml`. The workflow:
-- Runs on pushes to main branch
-- Performs build and tests
-- Creates releases
-
-Required secrets:
-- `GITHUB_TOKEN`: Automatically provided by GitHub
-
-## Usage
-
-### Running the Agent
-
-1. Start the application:
-```bash
-npm start
-```
-
-2. Choose operation mode:
-- Interactive chat mode: Enter `1` or `chat`
-- Autonomous mode: Enter `2` or `auto`
-
-### Interactive Chat Mode
-```bash
-Prompt: <enter your command>
-```
-
-### Autonomous Mode
-The agent will automatically perform blockchain interactions at set intervals.
-
-## Project Structure
-```
-├── src/
-│   ├── config/
-│   │   └── environment.ts
-│   ├── controllers/
-│   │   ├── AutoModeController.ts
-│   │   └── ChatController.ts
-│   ├── services/
-│   │   ├── AgentService.ts
-│   │   ├── WalletService.ts
-│   │   └── LoggerService.ts
-│   ├── types/
-│   │   └── index.ts
-│   ├── utils/
-│   │   ├── error.ts
-│   │   └── constants.ts
-│   └── index.ts
-├── tests/
-│   ├── unit/
-│   └── integration/
-├── .env
-├── .releaserc.js
-├── package.json
-└── tsconfig.json
-```
-
-## Development
-
-### Commit Messages
-Follow the Conventional Commits specification:
-- `feat:` New features (minor version)
-- `fix:` Bug fixes (patch version)
-- `BREAKING CHANGE:` Breaking changes (major version)
-- `chore:` Maintenance
-- `docs:` Documentation
-- `style:` Formatting
-- `refactor:` Code restructuring
-- `test:` Adding tests
-
-
-### Building
-```bash
-npm run build
-```
-
-## CI/CD
-
-### GitHub Actions Workflow
-The release process is automated through GitHub Actions:
-1. Triggers on push to main branch
-2. Sets up Node.js environment
-3. Installs dependencies
-4. Runs build
-5. Performs semantic release
-
-
-## Contributing
-1. Fork the repository
-2. Create your feature branch
-3. Commit changes using conventional commits
-4. Push to your branch
-5. Create a Pull Request
-
-## Troubleshooting
-
-### Common Issues
-
-1. npm install errors
-```bash
-# Clear npm cache
-npm cache clean --force
-
-# Remove node_modules and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
-
-2. Semantic Release Issues
-```bash
-# Check semantic-release configuration
-npx semantic-release --dry-run
-```
-
-3. GitHub Actions Failures
-- Verify all required secrets are set
-- Check Node.js version compatibility
-- Ensure npm authentication is correct
-
-
-#Deployment
-
-1. Prerequisites:
-- Docker installed
-- Node.js 18+
-- RabbitMQ
-- Redis
-
-4. Environment Variables:
-You'll need to set these environment variables:
-```
+# API & Platform Credentials
 XAI_API_KEY=your_ai_api_key
 CDP_API_KEY_NAME=your_cdp_api_key_name
 CDP_API_KEY_PRIVATE_KEY=your_private_key
+
+# Network Configuration
 NETWORK_ID=base-sepolia
+NODE_ENV=development
+LOG_LEVEL=info
+
+# Infrastructure Connection
 REDIS_URL=redis://localhost:6379
 RABBITMQ_URL=amqp://user:password@localhost:5672
 ```
 
-5. Deployment Steps:
+## Deployment Infrastructure
+
+### 🐳 Docker Deployment
+
+#### Infrastructure Services
 ```bash
-# Install
-npm i
-
-#build 
-np run build 
-
-# Start infrastructure services
+# Start required services
 docker-compose up -d
-
-# Build Docker image for trading agent
-docker build -t trading-agent-image:latest .
-
 ```
 
-Key Components:
-- `DockerDeployment`: Manages container creation and deployment
-- `AgentLifecycleManager`: Handles agent state, creation, freezing, and termination
-- `MessageQueue`: Manages inter-agent communication via RabbitMQ
-- `SecureAgentContainer`: Manages individual agent initialization and message processing
+#### Agent Container Build
+```bash
+# Build Docker image for trading agent
+docker build -t trading-agent-image:latest .
+```
 
-### Support
-For issues and questions:
-1. Check the [Issues](../../issues) section
-2. Create a new issue if needed
-3. Include relevant logs and error messages
+### Key Deployment Components
+- **DockerDeployment**: Manages container creation
+- **AgentLifecycleManager**: Handles agent state management
+- **MessageQueue**: Inter-agent communication via RabbitMQ
+- **SecureAgentContainer**: Agent initialization and message processing
+
+## Running the System
+
+### 1. Build Application
+```bash
+npm run build
+```
+
+### 2. Start Interactive Agent
+```bash
+npm start
+```
+
+### Interaction Modes
+- Interactive Chat Mode: Direct user interaction
+- Secure, isolated agent deployment for each user
+
+## Project Structure
+```
+├── src/
+│   ├── config/           # Configuration management
+│   ├── controllers/      # Request handling
+│   ├── services/         # Core business logic
+│   │   ├── AgentService.ts
+│   │   ├── WalletService.ts
+│   │   └── LoggerService.ts
+│   ├── types/            # TypeScript type definitions
+│   ├── utils/            # Utility functions
+│   └── index.ts          # Application entry point
+├── tests/                # Testing suites
+│   ├── unit/
+│   └── integration/
+├── deployment/           # Docker and deployment configs
+├── .env                  # Environment configuration
+└── tsconfig.json         # TypeScript configuration
+```
+
+## Development Workflow
+
+### Commit Message Convention
+Follows Conventional Commits specification:
+- `feat:` New features (triggers minor version)
+- `fix:` Bug fixes (triggers patch version)
+- `BREAKING CHANGE:` Major version changes
+- `chore:` Maintenance tasks
+- `docs:` Documentation updates
+- `refactor:` Code restructuring
+
+### Semantic Release
+- Automated versioning via `semantic-release`
+- Generates changelogs
+- Publishes to npm and GitHub
+
+## Security Principles
+
+### Isolation Strategies
+- Separate Docker containers per agent
+- Granular access controls
+- Input sanitization
+- Stateless design minimizing persistent data risks
+
+## Troubleshooting
+
+### Common Setup Issues
+```bash
+# Clear npm cache and reinstall
+npm cache clean --force
+rm -rf node_modules package-lock.json
+npm install
+
+# Verify semantic-release configuration
+npx semantic-release --dry-run
+```
+
+## Contributing
+1. Fork repository
+2. Create feature branch
+3. Commit using conventional commits
+4. Push changes
+5. Open Pull Request
+6. Pass security and integration tests
+
+## Support
+- Review [Issues](../../issues) section
+- Create detailed issue reports
+- Include comprehensive logs and error messages
 
 ## License
-MIT
+MIT License
+```
