@@ -1,4 +1,4 @@
-import amqp, { Channel, Connection } from 'amqplib';
+import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
 
 export interface QueueMessage {
   type: 'command' | 'response' | 'event';
@@ -54,8 +54,8 @@ export class MessageQueue {
     await this.channel.assertQueue(queueName, { durable: true });
     await this.channel.bindQueue(queueName, this.exchangeName, `agent.${agentId}.*`);
 
-    await this.channel.consume(queueName, async (msg: { content: { toString: () => string; }; fields: { redelivered: any; }; }) => {
-      if (!msg) return;
+    await this.channel.consume(queueName, async (msg: ConsumeMessage | null) => {
+      if (!msg) return; // Handle null message case
       
       try {
         const message: QueueMessage = JSON.parse(msg.content.toString());
@@ -63,13 +63,19 @@ export class MessageQueue {
         this.channel?.ack(msg);
       } catch (error) {
         console.error('Error processing message:', error);
-        // Requeue only if not processed
-        this.channel?.nack(msg, false, !msg.fields.redelivered);
+        
+        if (error instanceof SyntaxError) {
+          // Invalid JSON - reject message without requeue
+          this.channel?.reject(msg, false);
+        } else {
+          // Other errors - only requeue if not previously redelivered
+          this.channel?.nack(msg, false, !msg.fields.redelivered);
+        }
       }
     });
   }
 
-  async publishToAgent(agentId: string, message: Omit<QueueMessage, 'metadata'>) {
+  async publishToAgent(agentId: string, message: Omit<QueueMessage, 'metadata'> & { payload: { userId: string } }) {
     if (!this.channel) throw new Error('Queue not initialized');
 
     const fullMessage: QueueMessage = {
@@ -82,23 +88,26 @@ export class MessageQueue {
       }
     };
 
-    await this.channel.publish(
+    const routingKey = `agent.${agentId}.${message.type}`;
+    const published = this.channel.publish(
       this.exchangeName,
-      `agent.${agentId}.${message.type}`,
+      routingKey,
       Buffer.from(JSON.stringify(fullMessage)),
       { persistent: true }
     );
+
+    if (!published) {
+      throw new Error('Message could not be published to the queue');
+    }
   }
 
   async cleanup(): Promise<void> {
     try {
-      // Close channel if open
       if (this.channel) {
         await this.channel.close();
         this.channel = undefined;
       }
 
-      // Close connection if open
       if (this.connection) {
         await this.connection.close();
         this.connection = undefined;
