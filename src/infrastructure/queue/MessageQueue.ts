@@ -58,6 +58,12 @@ export class MessageQueue {
     options?: { consumerTag?: string }
   ): Promise<string> {
     if (!this.channel) throw new Error('Queue not initialized');
+
+    logger.info('Subscribing to agent queue', { 
+      agentId, 
+      queueName: `agent.${agentId}`,
+      routingKey: `agent.${agentId}.*`
+    });
   
     const queueName = `agent.${agentId}`;
     await this.channel.assertQueue(queueName, { durable: true });

@@ -138,10 +138,8 @@ export class AgentController {
         // Create a unique consumer tag to ensure this specific subscription
         const consumerTag = `${agentId}-${userId}-${correlationId}`;
   
-        const subscription = await this.messageQueue.subscribeToAgent(
-          agentId, 
-          async (msg) => {
-            logger.info(`Received message`, { 
+        await this.messageQueue.subscribeToAgent( agentId, async (msg) => {
+            logger.info(`AGENT: Received message from agent`, { 
               type: msg.type, 
               receivedUserId: msg.metadata.userId,
               expectedUserId: userId,
@@ -167,7 +165,7 @@ export class AgentController {
           { consumerTag }  // Pass the unique consumer tag
         );
   
-        logger.info(`Subscription created`, { agentId, subscription, consumerTag });
+        logger.info(`Subscription created`, { agentId, consumerTag });
   
         await this.messageQueue.publishToAgent(agentId, {
           type: 'command',
