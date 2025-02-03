@@ -5,6 +5,10 @@
   "scripts": {
     "start": "ts-node -r tsconfig-paths/register src/index.ts",
     "build": "tsc -p tsconfig.json && tsc-alias",
+    "pm2:prod": "pm2 start dist/index.js --name chainwhisper-prod -i max --env production",
+    "pm2:restart": "pm2 restart chainwhisper-prod",
+    "pm2:stop": "pm2 stop chainwhisper-prod",
+    "pm2:logs": "pm2 logs chainwhisper-prod",
     "test": "jest",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write 'src/**/*.ts'"
