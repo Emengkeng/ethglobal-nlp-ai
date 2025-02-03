@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.3.1...v1.3.2) (2025-02-03)
+
+
+### Bug Fixes
+
+* path issues ([e6a1ca5](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/e6a1ca55a6578acfd83a36cdfcb14527fc2066e3))
+
 ## [1.3.1](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.3.0...v1.3.1) (2025-02-03)
 
 
