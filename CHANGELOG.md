@@ -1,3 +1,11 @@
+## [1.3.4](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.3.3...v1.3.4) (2025-02-03)
+
+
+### Bug Fixes
+
+* application now works ([7b14649](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/7b14649f411110ae1c337b8cb53b4ac8d3d1d511))
+* confusion in subscription ([149ec05](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/149ec0545d9e965e57e8bb80e72d4e104b81fa99))
+
 ## [1.3.3](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.3.2...v1.3.3) (2025-02-03)
 
 
