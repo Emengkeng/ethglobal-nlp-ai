@@ -1,3 +1,33 @@
+# [1.1.0](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.0.1...v1.1.0) (2025-02-03)
+
+
+### Bug Fixes
+
+* docker works properly with deployment ([18450a8](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/18450a8add0d549b9268a4734fed14a8e169ea5c))
+* life cycle now uses docker deployment script ([5f200b0](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/5f200b074c50ea87c405da00a341fafae38c2710))
+* modified DockerDeployment class to handle image building ([06e05af](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/06e05af548b25ca5edc4b666efd1faa9610520ed))
+* msg implicitly has any type ([78186ea](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/78186ea473c650cd6961d5c3296928011e361a22))
+* property clleanup does not exist on type MessageQueue ([1dbf286](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/1dbf2863495abeed954353c6a0b5cb0d560dd4a5))
+* type error ([be4aa8a](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/be4aa8a2f544c971fc90d971d06f9024e17d656d))
+* type issues ([30a4115](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/30a41150df4f345bc58d555e0d7d11bdcc456ee9))
+
+
+### Features
+
+* ability for multi user usage, and isolation of each agent vai docker ([764f02b](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/764f02bdd5d9fc2e1f7a70bb4063c9b4bcb74e1d))
+* ability to stop all agents on the system ([c2d8885](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/c2d8885a0ff880ecb3e25436daed83a966807523))
+* added cleanup for graceful shutdown ([7e56857](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/7e5685749d9c300671029cc22f34e57e1c68c37f))
+* added docker file ([8c2a768](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/8c2a768d14433f19286cf6da0fd0ac288a11f63f))
+* agent container with message handling ([3b4b75a](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/3b4b75a2dbf5db5497fe1f5cc41c7980445913c1))
+* cleanup and added needed import ([4c5c1e5](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/4c5c1e5abbf97ecdd563ff2b5952060dfaa33064))
+* created file to break down large codebase ([e73c9bc](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/e73c9bc74ca101af65740953d840e8bbd3aacb4f))
+* file structure for support of multiple users vai agent ([7bff635](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/7bff635913db568118e2efbd85887d6049d4d32e))
+* installed needed packages to extend agent to multi users ([3feee13](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/3feee1318851fdd71368396e5fb112ea9d832862))
+* message queue for communication with isolated agents ([726591e](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/726591e418cd25502c65b955d19b7df59b823f0c))
+* not more than 1 agents can be created per user and 2 for the system ([8125077](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/81250772a7afe22b2d29bbe192ab947f0514c7fd))
+* proper route management and application startup ([9dcb3a2](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/9dcb3a2539dd361dbeaee1ea0095606f453da2d5))
+* separated agent state and error ([dba0521](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/dba052108e4ca46f5949d1958b97f222540a556d))
+
 ## [1.0.1](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.0.0...v1.0.1) (2025-02-01)
 
 
