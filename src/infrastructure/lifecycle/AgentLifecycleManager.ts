@@ -17,6 +17,16 @@ interface AgentState {
   cpuUsage?: number;
 }
 
+const MAX_AGENTS_PER_USER  = 1;
+const MAX_SYSTEM_AGENTS = 2; 
+
+class AgentLimitError extends Error {
+  constructor(message: string, public readonly limitType: 'user' | 'system') {
+    super(message);
+    this.name = 'AgentLimitError';
+  }
+}
+
 function getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       return error.message;
@@ -42,7 +52,7 @@ export class AgentLifecycleManager {
 
   constructor() {
     this.docker = new Docker();
-    this.redis = new Redis(process.env.REDIS_URL);
+    this.redis = new Redis(process.env.REDIS_URL || "");
     this.messageQueue = new MessageQueue();
 
     this.dockerDeployment = new DockerDeployment();
@@ -77,7 +87,11 @@ export class AgentLifecycleManager {
   }
 
   private async createAgent(userId: string): Promise<string> {
-    console.log(`Creating new agent for user ${userId}`);
+    console.log(`Attempting to create new agent for user ${userId}`);
+
+    // Check both user and system limits
+    await this.checkAgentLimits(userId);
+
     const agentId = `agent-${userId}-${Date.now()}`;
     
     try {
@@ -104,6 +118,16 @@ export class AgentLifecycleManager {
       return agentId;
     } catch (error) {
       console.error(`Error creating agent for user ${userId}:`, error);
+
+      if (error instanceof AgentLimitError) {
+        if (error.limitType === 'user') {
+            // Handle user limit reached
+            console.log('User limit reached:', error.message);
+        } else {
+            // Handle system limit reached
+            console.log('System limit reached:', error.message);
+        }
+      }
       throw error;
     }
   }
@@ -333,34 +357,65 @@ export class AgentLifecycleManager {
 
   private async getAllAgentStates(): Promise<AgentState[]> {
     try {
-        // Get all agent IDs from Redis
         const keys = await this.redis.keys('agent:*:state');
         
-        // Get all agent states in parallel
         const states = await Promise.all(
             keys.map(async (key: any) => {
                 const data = await this.redis.get(key);
-                return data ? JSON.parse(data) as AgentState : null;
+                if (!data) return null;
+                
+                const state = JSON.parse(data);
+                // Convert date strings back to Date objects
+                state.lastActivity = new Date(state.lastActivity);
+                state.createdAt = new Date(state.createdAt);
+                return state;
             })
         );
 
-        // Filter out null values and validate states
         return states.filter((state): state is AgentState => {
             if (!state) return false;
             
-            // Validate required fields
             return (
                 typeof state.userId === 'string' &&
                 typeof state.agentId === 'string' &&
                 typeof state.status === 'string' &&
-                state.lastActivity instanceof Date
+                state.lastActivity instanceof Date &&
+                state.createdAt instanceof Date
             );
         });
     } catch (error) {
         console.error('Error getting all agent states:', error);
-        return [];
+        throw error;
     }
-   }
+  }
+
+  private async getActiveAgentCounts(userId: string): Promise<{ userCount: number; systemCount: number }> {
+    const states = await this.getAllAgentStates();
+    const activeStates = states.filter(state => ['starting', 'active'].includes(state.status));
+    
+    return {
+        userCount: activeStates.filter(state => state.userId === userId).length,
+        systemCount: activeStates.length
+    };
+  }
+
+  private async checkAgentLimits(userId: string): Promise<void> {
+    const { userCount, systemCount } = await this.getActiveAgentCounts(userId);
+
+    if (userCount >= MAX_AGENTS_PER_USER) {
+        throw new AgentLimitError(
+            `Cannot create new agent. User ${userId} has reached the maximum limit of ${MAX_AGENTS_PER_USER} agents.`,
+            'user'
+        );
+    }
+
+    if (systemCount >= MAX_SYSTEM_AGENTS) {
+        throw new AgentLimitError(
+            `Cannot create new agent. System has reached the maximum limit of ${MAX_SYSTEM_AGENTS} agents.`,
+            'system'
+        );
+    }
+  }
 
   private async getAgentState(userId: string): Promise<AgentState | null> {
     try {
