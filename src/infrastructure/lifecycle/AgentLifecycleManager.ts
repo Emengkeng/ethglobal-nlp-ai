@@ -27,6 +27,13 @@ class AgentLimitError extends Error {
   }
 }
 
+class AgentTerminationError extends Error {
+  constructor(message: string, public readonly agentId: string) {
+    super(message);
+    this.name = 'AgentTerminationError';
+  }
+}
+
 function getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       return error.message;
@@ -491,5 +498,120 @@ export class AgentLifecycleManager {
       console.error(`Error getting agent state for ${agentId}:`, error);
       return null;
     }
+  }
+
+  // Kill All agent 
+  private async killAgent(agentId: string): Promise<void> {
+    try {
+      const state = await this.getAgentState(agentId);
+      if (!state) {
+        throw new Error(`No state found for agent ${agentId}`);
+      }
+  
+      // Ensure we have a valid container ID
+      if (!state.containerId) {
+        throw new Error(`No container ID found for agent ${agentId}`);
+      }
+  
+      // Remove the container forcefully
+      const oldContainer = this.docker.getContainer(state.containerId);
+      await oldContainer.remove({ force: true });
+      
+      // Update agent state to terminated
+      state.status = 'stopping';
+      state.lastActivity = new Date();
+      await this.saveAgentState(state);
+      
+      // Optional: Remove Redis entries if needed
+      await this.redis.del(`user:${state.userId}:agentId`);
+      await this.redis.del(`agent:${agentId}:state`);
+      
+      console.log(`Successfully terminated and removed container for agent ${agentId}`);
+    } catch (error) {
+      console.error(`Error terminating agent ${agentId}:`, error);
+      throw new AgentTerminationError(`Failed to terminate agent ${agentId}: ${error}`, agentId);
+    }
+  }
+  
+  public async killAllAgents(): Promise<{ 
+    success: boolean; 
+    terminated: string[]; 
+    failed: { agentId: string; error: string }[] 
+  }> {
+    console.log('Initiating termination of all agents...');
+    
+    const result = {
+      success: true,
+      terminated: [] as string[],
+      failed: [] as { agentId: string; error: any }[]
+    };
+  
+    try {
+      //let DeclaredAgentId
+      // Get all active agents
+      const states = await this.getAllAgentStates();
+      const activeAgents = states.filter(state => 
+        ['starting', 'active'].includes(state.status) && state.containerId
+      );
+  
+      if (activeAgents.length === 0) {
+        console.log('No active agents found to terminate');
+        // Clean up any additional resources
+        await this.messageQueue.cleanup();
+        return result;
+      }
+  
+      // Kill agents in parallel with timeout
+      const killPromises = activeAgents.map(async (state) => {
+        try {
+          await Promise.race([
+            //DeclaredAgentId = state.agentId,
+            this.killAgent(state.agentId),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout')), 30000) // 30 second timeout
+            )
+          ]);
+          result.terminated.push(state.agentId);
+        } catch (error) {
+          result.failed.push({
+            agentId: state.agentId,
+            error: error || 'Unknown error'
+          });
+        }
+      });
+  
+      await Promise.all(killPromises);
+  
+      // Update final success status
+      result.success = result.failed.length === 0;
+  
+      // Log summary
+      console.log('Agent termination summary:', {
+        totalAttempted: activeAgents.length,
+        successful: result.terminated.length,
+        failed: result.failed.length
+      });
+  
+      return result;
+    } catch (error) {
+      console.error('Critical error in killAllAgents:', error);
+      //throw new AgentTerminationError(`Critical error in killAllAgents: ${error}`, DeclaredAgentId);
+      throw error;
+    }
+  }
+  
+  // Optional: Add method to get termination status
+  public async getTerminationStatus(): Promise<{
+    activeAgents: number;
+    terminatedAgents: number;
+    failedAgents: number;
+  }> {
+    const states = await this.getAllAgentStates();
+    
+    return {
+      activeAgents: states.filter(s => ['starting', 'active'].includes(s.status)).length,
+      terminatedAgents: states.filter(s => s.status === 'stopping').length,
+      failedAgents: states.filter(s => s.status === 'error').length
+    };
   }
 }
