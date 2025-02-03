@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AgentLifecycleManager } from '../../infrastructure/lifecycle/AgentLifecycleManager';
 import { MessageQueue } from '../../infrastructure/queue/MessageQueue';
+import { messageQueueSingleton } from '../../infrastructure/queue/messageQueueSingleton';
 
 export class AgentController {
   private lifecycleManager: AgentLifecycleManager;
@@ -8,7 +9,7 @@ export class AgentController {
 
   constructor() {
     this.lifecycleManager = new AgentLifecycleManager();
-    this.messageQueue = new MessageQueue();
+    this.messageQueue = messageQueueSingleton;
   }
 
   async handleMessage(req: Request, res: Response) {

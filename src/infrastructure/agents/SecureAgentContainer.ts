@@ -2,6 +2,7 @@ import { AgentService } from '@/services/AgentService';
 import { WalletService } from '@/services/WalletService';
 import { MessageQueue, QueueMessage } from '../queue/MessageQueue';
 import { HumanMessage } from '@langchain/core/messages';
+import { messageQueueSingleton } from '../queue/messageQueueSingleton';
 
 export class SecureAgentContainer {
   private agent: any;
@@ -13,13 +14,13 @@ export class SecureAgentContainer {
   constructor(userId: string, agentId: string) {
     this.userId = userId;
     this.agentId = agentId;
-    this.messageQueue = new MessageQueue();
+    this.messageQueue = messageQueueSingleton;
   }
 
   async initialize(): Promise<void> {
     try {
       // Initialize message queue
-      await this.messageQueue.initialize();
+      //await this.messageQueue.initialize();
 
       // Initialize agent with isolated wallet
       const { agent, config } = await AgentService.initialize();

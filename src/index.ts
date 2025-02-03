@@ -6,7 +6,7 @@ import http from 'http';
 
 import agentRoutes from '@/api/routes/AgentRoutes';
 import { AgentLifecycleManager } from './infrastructure/lifecycle/AgentLifecycleManager';
-import { MessageQueue } from './infrastructure/queue/MessageQueue';
+import { initializeMessageQueue } from './infrastructure/queue/messageQueueSingleton';
 
 class Server {
   private app: Application;
@@ -127,8 +127,7 @@ class Server {
   public async start(): Promise<void> {
 
     // Initialize message queue
-    const messageQueue = new MessageQueue();
-    await messageQueue.initialize();
+    await initializeMessageQueue();
 
 
     // Create HTTP server

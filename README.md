@@ -196,6 +196,48 @@ npx semantic-release --dry-run
 - Check Node.js version compatibility
 - Ensure npm authentication is correct
 
+
+#Deployment
+
+1. Prerequisites:
+- Docker installed
+- Node.js 18+
+- RabbitMQ
+- Redis
+
+4. Environment Variables:
+You'll need to set these environment variables:
+```
+XAI_API_KEY=your_ai_api_key
+CDP_API_KEY_NAME=your_cdp_api_key_name
+CDP_API_KEY_PRIVATE_KEY=your_private_key
+NETWORK_ID=base-sepolia
+REDIS_URL=redis://localhost:6379
+RABBITMQ_URL=amqp://user:password@localhost:5672
+```
+
+5. Deployment Steps:
+```bash
+# Install
+npm i
+
+#build 
+np run build 
+
+# Start infrastructure services
+docker-compose up -d
+
+# Build Docker image for trading agent
+docker build -t trading-agent-image:latest .
+
+```
+
+Key Components:
+- `DockerDeployment`: Manages container creation and deployment
+- `AgentLifecycleManager`: Handles agent state, creation, freezing, and termination
+- `MessageQueue`: Manages inter-agent communication via RabbitMQ
+- `SecureAgentContainer`: Manages individual agent initialization and message processing
+
 ### Support
 For issues and questions:
 1. Check the [Issues](../../issues) section

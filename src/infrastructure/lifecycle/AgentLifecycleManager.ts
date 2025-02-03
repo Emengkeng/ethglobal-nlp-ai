@@ -5,6 +5,8 @@ import { DockerDeployment } from '@/deployment/DockerDeployment';
 import { AgentState } from './AgentState';
 import { AgentLimitError, AgentTerminationError, getErrorMessage } from './AgentErrors';
 import { MAX_AGENTS_PER_USER, MAX_SYSTEM_AGENTS } from '@/types'; 
+import { messageQueueSingleton } from '../queue/messageQueueSingleton';
+
 
 export class AgentLifecycleManager {
   private docker: Docker;
@@ -21,7 +23,7 @@ export class AgentLifecycleManager {
   constructor() {
     this.docker = new Docker();
     this.redis = new Redis(process.env.REDIS_URL || "");
-    this.messageQueue = new MessageQueue();
+    this.messageQueue = messageQueueSingleton;
 
     this.dockerDeployment = new DockerDeployment();
     

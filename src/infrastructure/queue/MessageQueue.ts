@@ -21,17 +21,20 @@ export class MessageQueue {
   ) {}
 
   async initialize(): Promise<void> {
-    this.connection = await amqp.connect(this.url);
-    this.channel = await this.connection.createChannel();
-    
-    // Create exchange for pub/sub
-    await this.channel.assertExchange(this.exchangeName, 'topic', { durable: true });
-    
-    // Handle reconnection
-    this.connection.on('close', async () => {
-      console.log('Connection closed, reconnecting...');
-      await this.reconnect();
-    });
+    try {
+      this.connection = await amqp.connect(this.url);
+      this.channel = await this.connection.createChannel();
+      
+      await this.channel.assertExchange(this.exchangeName, 'topic', { durable: true });
+      
+      this.connection.on('close', async () => {
+        console.log('Connection closed, reconnecting...');
+        await this.reconnect();
+      });
+    } catch (error) {
+      console.error('Failed to initialize message queue:', error);
+      throw error;
+    }
   }
 
   async reconnect(retries = 5): Promise<void> {
