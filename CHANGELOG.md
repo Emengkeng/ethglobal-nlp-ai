@@ -1,3 +1,18 @@
+# [1.2.0](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.1.0...v1.2.0) (2025-02-03)
+
+
+### Bug Fixes
+
+* creating a centralized MessageQueue instance to avoid errors ([a07715e](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/a07715ef81f5f76907de6f834d078070b0d44082))
+* import errors ([594206a](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/594206a77fed85e60cf0d2c1aeca76b60e83ffcd))
+* initialized MessageQueue before starting the server ([92e87e3](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/92e87e31356c96e01925d9345a587e4d00d5b644))
+* method missing the userId property ([f5c3375](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/f5c3375a28fe6edb886ad595d123b6f7f8cafcda))
+
+
+### Features
+
+* move logger to utils ([24b86aa](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/24b86aa133281bb29058a549f89552cb22e6d346))
+
 # [1.1.0](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.0.1...v1.1.0) (2025-02-03)
 
 
