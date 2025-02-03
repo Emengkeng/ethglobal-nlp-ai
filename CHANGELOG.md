@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.2.0...v1.3.0) (2025-02-03)
+
+
+### Features
+
+* added proper logging with winston ([49eae36](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/49eae36e669a64eba248dea72fbc848db74b38ad))
+
 # [1.2.0](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.1.0...v1.2.0) (2025-02-03)
 
 
