@@ -53,9 +53,9 @@ export class DockerDeployment {
           `RABBITMQ_URL=${process.env.RABBITMQ_URL}`
         ],
         HostConfig: {
-          Memory: 256 * 1024 * 1024,
-          MemorySwap: 512 * 1024 * 1024,
-          CpuShares: 512,
+          Memory: 512 * 1024 * 1024,
+          MemorySwap: 1024  * 1024 * 1024,
+          CpuShares: 1024,
           RestartPolicy: {
             Name: 'unless-stopped'
           },
