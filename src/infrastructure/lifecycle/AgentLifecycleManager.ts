@@ -2,48 +2,9 @@ import Docker from 'dockerode';
 import { MessageQueue } from '../queue/MessageQueue';
 import Redis, { Redis as RedisClient } from 'ioredis';
 import { DockerDeployment } from '@/deployment/DockerDeployment';
-
-interface AgentState {
-  userId: string;
-  agentId: string;
-  status: 'active' | 'frozen' | 'starting' | 'stopping' | 'error';
-  lastActivity: Date;
-  containerId?: string;
-  createdAt: Date;
-  lastFrozen?: Date;
-  lastUnfrozen?: Date;
-  errorMessage?: string;
-  memoryUsage?: number;
-  cpuUsage?: number;
-}
-
-const MAX_AGENTS_PER_USER  = 1;
-const MAX_SYSTEM_AGENTS = 2; 
-
-class AgentLimitError extends Error {
-  constructor(message: string, public readonly limitType: 'user' | 'system') {
-    super(message);
-    this.name = 'AgentLimitError';
-  }
-}
-
-class AgentTerminationError extends Error {
-  constructor(message: string, public readonly agentId: string) {
-    super(message);
-    this.name = 'AgentTerminationError';
-  }
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    } else if (typeof error === 'string') {
-      return error;
-    } else if (error && typeof error === 'object' && 'message' in error) {
-      return String(error.message);
-    }
-    return 'An unknown error occurred';
-}
+import { AgentState } from './AgentState';
+import { AgentLimitError, AgentTerminationError, getErrorMessage } from './AgentErrors';
+import { MAX_AGENTS_PER_USER, MAX_SYSTEM_AGENTS } from '@/types'; 
 
 export class AgentLifecycleManager {
   private docker: Docker;
