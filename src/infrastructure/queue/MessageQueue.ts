@@ -1,4 +1,6 @@
 import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
+import { logger } from '@/utils/LoggerService';
+
 
 export interface QueueMessage {
   type: 'command' | 'response' | 'event';
@@ -28,11 +30,11 @@ export class MessageQueue {
       await this.channel.assertExchange(this.exchangeName, 'topic', { durable: true });
       
       this.connection.on('close', async () => {
-        console.log('Connection closed, reconnecting...');
+        logger.info('Connection closed, reconnecting...');
         await this.reconnect();
       });
     } catch (error) {
-      console.error('Failed to initialize message queue:', error);
+      logger.error('Failed to initialize message queue:', error);
       throw error;
     }
   }
@@ -43,7 +45,7 @@ export class MessageQueue {
         await this.initialize();
         return;
       } catch (error) {
-        console.error(`Reconnection attempt ${i + 1} failed:`, error);
+        logger.error(`Reconnection attempt ${i + 1} failed:`, error);
         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
       }
     }
@@ -65,7 +67,7 @@ export class MessageQueue {
         await callback(message);
         this.channel?.ack(msg);
       } catch (error) {
-        console.error('Error processing message:', error);
+        logger.error('Error processing message:', error);
         
         if (error instanceof SyntaxError) {
           // Invalid JSON - reject message without requeue
@@ -116,9 +118,9 @@ export class MessageQueue {
         this.connection = undefined;
       }
 
-      console.log('Message queue connections closed');
+      logger.info('Message queue connections closed');
     } catch (error) {
-      console.error('Error cleaning up message queue:', error);
+      logger.error('Error cleaning up message queue:', error);
       throw error;
     }
   }

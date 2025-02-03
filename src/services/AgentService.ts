@@ -9,6 +9,8 @@ import { EnvironmentConfig } from '../config/environment';
 import { WalletService } from './WalletService';
 import { SystemMessage } from '@langchain/core/messages';
 import { MessagesAnnotation } from '@langchain/langgraph';
+import { logger } from '@/utils/LoggerService';
+
 
 export class AgentService {
   static async initialize() {
@@ -65,7 +67,7 @@ export class AgentService {
 
       return { agent, config: agentConfig };
     } catch (error) {
-      console.error('Failed to initialize agent:', error);
+      logger.error('Failed to initialize agent:', error);
       throw error;
     }
   }

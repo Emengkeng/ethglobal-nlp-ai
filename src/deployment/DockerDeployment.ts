@@ -1,5 +1,6 @@
 import Docker from 'dockerode';
 import path from 'path';
+import { logger } from '@/utils/LoggerService';
 
 export class DockerDeployment {
   private docker: Docker;
@@ -28,9 +29,9 @@ export class DockerDeployment {
         });
       });
 
-      console.log('Image built successfully');
+      logger.info('Image built successfully');
     } catch (error) {
-      console.error('Error building image:', error);
+      logger.error('Error building image:', error);
       throw error;
     }
   }
@@ -71,11 +72,11 @@ export class DockerDeployment {
 
       // Start the container
       await container.start();
-      console.log(`Agent ${agentId} deployed successfully`);
+      logger.info(`Agent ${agentId} deployed successfully`);
 
       return container.id;
     } catch (error) {
-      console.error(`Error deploying agent ${agentId}:`, error);
+      logger.error(`Error deploying agent ${agentId}:`, error);
       throw error;
     }
   }
@@ -85,9 +86,9 @@ export class DockerDeployment {
       const container = this.docker.getContainer(`trading-agent-${agentId}`);
       await container.stop();
       await container.remove();
-      console.log(`Agent ${agentId} removed successfully`);
+      logger.info(`Agent ${agentId} removed successfully`);
     } catch (error) {
-      console.error(`Error removing agent ${agentId}:`, error);
+      logger.error(`Error removing agent ${agentId}:`, error);
       throw error;
     }
   }

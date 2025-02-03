@@ -6,6 +6,7 @@ import { AgentState } from './AgentState';
 import { AgentLimitError, AgentTerminationError, getErrorMessage } from './AgentErrors';
 import { MAX_AGENTS_PER_USER, MAX_SYSTEM_AGENTS } from '@/types'; 
 import { messageQueueSingleton } from '../queue/messageQueueSingleton';
+import { logger } from '@/utils/LoggerService';
 
 
 export class AgentLifecycleManager {
@@ -57,7 +58,7 @@ export class AgentLifecycleManager {
   }
 
   private async createAgent(userId: string): Promise<string> {
-    console.log(`Attempting to create new agent for user ${userId}`);
+    logger.info(`Attempting to create new agent for user ${userId}`);
 
     // Check both user and system limits
     await this.checkAgentLimits(userId);
@@ -84,18 +85,18 @@ export class AgentLifecycleManager {
       state.status = 'active';
       await this.saveAgentState(state);
 
-      console.log(`Agent ${agentId} created successfully`);
+      logger.info(`Agent ${agentId} created successfully`);
       return agentId;
     } catch (error) {
-      console.error(`Error creating agent for user ${userId}:`, error);
+      logger.error(`Error creating agent for user ${userId}:`, error);
 
       if (error instanceof AgentLimitError) {
         if (error.limitType === 'user') {
             // Handle user limit reached
-            console.log('User limit reached:', error.message);
+            logger.log('User limit reached:', error.message);
         } else {
             // Handle system limit reached
-            console.log('System limit reached:', error.message);
+            logger.log('System limit reached:', error.message);
         }
       }
       throw error;
@@ -103,7 +104,7 @@ export class AgentLifecycleManager {
   }
 
   private async freezeAgent(agentState: AgentState): Promise<void> {
-    console.log(`Freezing agent ${agentState.agentId}`);
+    logger.info(`Freezing agent ${agentState.agentId}`);
     if (agentState.status !== 'active') return;
 
     try {
@@ -132,9 +133,9 @@ export class AgentLifecycleManager {
       agentState.lastFrozen = new Date();
       await this.saveAgentState(agentState);
 
-      console.log(`Agent ${agentState.agentId} frozen successfully`);
+      logger.info(`Agent ${agentState.agentId} frozen successfully`);
     } catch (error: unknown) {
-      console.error(`Error freezing agent ${agentState.agentId}:`, error);
+      logger.error(`Error freezing agent ${agentState.agentId}:`, error);
       // Mark agent as error state
       agentState.status = 'error';
       agentState.errorMessage = getErrorMessage(error);
@@ -143,7 +144,7 @@ export class AgentLifecycleManager {
   }
 
   private async unfreezeAgent(agentState: AgentState): Promise<string> {
-    console.log(`Unfreezing agent ${agentState.agentId}`);
+    logger.info(`Unfreezing agent ${agentState.agentId}`);
     try {
       // Update state to starting
       agentState.status = 'starting';
@@ -174,10 +175,10 @@ export class AgentLifecycleManager {
       agentState.lastUnfrozen = new Date();
       await this.saveAgentState(agentState);
 
-      console.log(`Agent ${agentState.agentId} unfrozen successfully`);
+      logger.info(`Agent ${agentState.agentId} unfrozen successfully`);
       return agentState.agentId;
     } catch (error: unknown) {
-      console.error(`Error unfreezing agent ${agentState.agentId}:`, error);
+      logger.error(`Error unfreezing agent ${agentState.agentId}:`, error);
       // Mark agent as error state
       agentState.status = 'error';
       agentState.errorMessage = getErrorMessage(error);
@@ -187,7 +188,7 @@ export class AgentLifecycleManager {
   }
 
   private async recoverAgent(agentState: AgentState): Promise<string> {
-    console.log(`Attempting to recover agent ${agentState.agentId}`);
+    logger.info(`Attempting to recover agent ${agentState.agentId}`);
     try {
       // Remove old container
       const oldContainer = this.docker.getContainer(agentState.containerId!);
@@ -196,7 +197,7 @@ export class AgentLifecycleManager {
       // Create new container
       return await this.createAgent(agentState.userId);
     } catch (error) {
-      console.error(`Error recovering agent ${agentState.agentId}:`, error);
+      logger.error(`Error recovering agent ${agentState.agentId}:`, error);
       throw error;
     }
   }
@@ -212,12 +213,12 @@ export class AgentLifecycleManager {
 
           const inactiveTime = now.getTime() - new Date(agent.lastActivity).getTime();
           if (inactiveTime > this.INACTIVITY_TIMEOUT) {
-            console.log(`Agent ${agent.agentId} inactive for ${inactiveTime}ms, freezing`);
+            logger.info(`Agent ${agent.agentId} inactive for ${inactiveTime}ms, freezing`);
             await this.freezeAgent(agent);
           }
         }
       } catch (error) {
-        console.error('Error in activity monitor:', error);
+        logger.error('Error in activity monitor:', error);
       }
     }, this.HEALTH_CHECK_INTERVAL);
   }
@@ -250,7 +251,7 @@ export class AgentLifecycleManager {
           await this.saveAgentState(agent);
         }
       } catch (error) {
-        console.error('Error in health check:', error);
+        logger.error('Error in health check:', error);
       }
     }, this.HEALTH_CHECK_INTERVAL);
   }
@@ -342,7 +343,7 @@ export class AgentLifecycleManager {
             })
         );
 
-        return states.filter((state): state is AgentState => {
+        return states.filter((state: { userId: any; agentId: any; status: any; lastActivity: any; createdAt: any; }): state is AgentState => {
             if (!state) return false;
             
             return (
@@ -354,7 +355,7 @@ export class AgentLifecycleManager {
             );
         });
     } catch (error) {
-        console.error('Error getting all agent states:', error);
+        logger.error('Error getting all agent states:', error);
         throw error;
     }
   }
@@ -407,7 +408,7 @@ export class AgentLifecycleManager {
 
       return state;
     } catch (error) {
-      console.error(`Error getting agent state for user ${userId}:`, error);
+      logger.error(`Error getting agent state for user ${userId}:`, error);
       return null;
     }
   }
@@ -425,7 +426,7 @@ export class AgentLifecycleManager {
       // Execute pipeline
       await pipeline.exec();
     } catch (error) {
-      console.error(`Error saving agent state for ${state.agentId}:`, error);
+      logger.error(`Error saving agent state for ${state.agentId}:`, error);
       throw error;
     }
   }
@@ -438,7 +439,7 @@ export class AgentLifecycleManager {
         await this.saveAgentState(state);
       }
     } catch (error) {
-      console.error(`Error updating activity for agent ${agentId}:`, error);
+      logger.error(`Error updating activity for agent ${agentId}:`, error);
       throw error;
     }
   }
@@ -458,7 +459,7 @@ export class AgentLifecycleManager {
 
       return state;
     } catch (error) {
-      console.error(`Error getting agent state for ${agentId}:`, error);
+      logger.error(`Error getting agent state for ${agentId}:`, error);
       return null;
     }
   }
@@ -489,9 +490,9 @@ export class AgentLifecycleManager {
       await this.redis.del(`user:${state.userId}:agentId`);
       await this.redis.del(`agent:${agentId}:state`);
       
-      console.log(`Successfully terminated and removed container for agent ${agentId}`);
+      logger.info(`Successfully terminated and removed container for agent ${agentId}`);
     } catch (error) {
-      console.error(`Error terminating agent ${agentId}:`, error);
+      logger.error(`Error terminating agent ${agentId}:`, error);
       throw new AgentTerminationError(`Failed to terminate agent ${agentId}: ${error}`, agentId);
     }
   }
@@ -501,7 +502,7 @@ export class AgentLifecycleManager {
     terminated: string[]; 
     failed: { agentId: string; error: string }[] 
   }> {
-    console.log('Initiating termination of all agents...');
+    logger.info('Initiating termination of all agents...');
     
     const result = {
       success: true,
@@ -518,7 +519,7 @@ export class AgentLifecycleManager {
       );
   
       if (activeAgents.length === 0) {
-        console.log('No active agents found to terminate');
+        logger.info('No active agents found to terminate');
         // Clean up any additional resources
         await this.messageQueue.cleanup();
         return result;
@@ -549,7 +550,7 @@ export class AgentLifecycleManager {
       result.success = result.failed.length === 0;
   
       // Log summary
-      console.log('Agent termination summary:', {
+      logger.log('Agent termination summary:', {
         totalAttempted: activeAgents.length,
         successful: result.terminated.length,
         failed: result.failed.length
@@ -557,7 +558,7 @@ export class AgentLifecycleManager {
   
       return result;
     } catch (error) {
-      console.error('Critical error in killAllAgents:', error);
+      logger.error('Critical error in killAllAgents:', error);
       //throw new AgentTerminationError(`Critical error in killAllAgents: ${error}`, DeclaredAgentId);
       throw error;
     }

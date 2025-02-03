@@ -3,6 +3,7 @@ import { WalletService } from '@/services/WalletService';
 import { MessageQueue, QueueMessage } from '../queue/MessageQueue';
 import { HumanMessage } from '@langchain/core/messages';
 import { messageQueueSingleton } from '../queue/messageQueueSingleton';
+import { logger } from '@/utils/LoggerService';
 
 export class SecureAgentContainer {
   private agent: any;
@@ -30,9 +31,9 @@ export class SecureAgentContainer {
       // Subscribe to agent messages
       await this.subscribeToMessages();
       
-      console.log(`Agent ${this.agentId} initialized successfully`);
+      logger.info(`Agent ${this.agentId} initialized successfully`);
     } catch (error) {
-      console.error(`Failed to initialize agent ${this.agentId}:`, error);
+      logger.error(`Failed to initialize agent ${this.agentId}:`, error);
       throw error;
     }
   }
@@ -48,10 +49,10 @@ export class SecureAgentContainer {
             await this.handleEvent(message);
             break;
           default:
-            console.warn(`Unknown message type: ${message.type}`);
+            logger.warn(`Unknown message type: ${message.type}`);
         }
       } catch (error) {
-        console.error(`Error processing message for agent ${this.agentId}:`, error);
+        logger.error(`Error processing message for agent ${this.agentId}:`, error);
         // Send error response
         await this.sendErrorResponse(message, error);
       }
@@ -91,7 +92,7 @@ export class SecureAgentContainer {
         break;
 
       default:
-        console.warn(`Unknown event: ${event}`);
+        logger.warn(`Unknown event: ${event}`);
     }
   }
 
@@ -165,9 +166,9 @@ export class SecureAgentContainer {
       // Close message queue connections
       await this.messageQueue.cleanup();
 
-      console.log('Agent container cleanup completed');
+      logger.info('Agent container cleanup completed');
     } catch (error) {
-      console.error('Error during cleanup:', error);
+      logger.error('Error during cleanup:', error);
       throw error;
     }
   }

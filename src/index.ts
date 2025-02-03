@@ -7,6 +7,8 @@ import http from 'http';
 import agentRoutes from '@/api/routes/AgentRoutes';
 import { AgentLifecycleManager } from './infrastructure/lifecycle/AgentLifecycleManager';
 import { initializeMessageQueue } from './infrastructure/queue/messageQueueSingleton';
+import { logger } from '@/utils/LoggerService';
+
 
 class Server {
   private app: Application;
@@ -82,7 +84,7 @@ class Server {
   private configureErrorHandling(): void {
     // Centralized error handler
     this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-      console.error('Unhandled error:', err);
+      logger.error('Unhandled error:', err);
 
       res.status(500).json({
         error: 'Internal Server Error',
@@ -94,7 +96,7 @@ class Server {
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
-      console.error('Uncaught Exception:', error);
+      logger.error('Uncaught Exception:', error);
       
       // Attempt graceful shutdown
       this.shutdownGracefully();
@@ -102,7 +104,7 @@ class Server {
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
       
       // Attempt graceful shutdown
       this.shutdownGracefully();
@@ -110,16 +112,16 @@ class Server {
   }
 
   private shutdownGracefully(): void {
-    console.log('Attempting graceful shutdown...');
+    logger.info('Attempting graceful shutdown...');
 
     // Terminate all agents
     this.lifecycleManager.killAllAgents()
       .then(() => {
-        console.log('All agents terminated successfully');
+        logger.info('All agents terminated successfully');
         process.exit(1);
       })
       .catch((error) => {
-        console.error('Error during agent termination:', error);
+        logger.error('Error during agent termination:', error);
         process.exit(1);
       });
   }
@@ -135,8 +137,8 @@ class Server {
 
     // Start server
     this.server.listen(this.port, () => {
-      console.log(`Server running on port ${this.port}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`Server running on port ${this.port}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
 
     // Graceful shutdown handlers
@@ -145,22 +147,22 @@ class Server {
   }
 
   private shutdown(): void {
-    console.log('Received termination signal. Shutting down gracefully...');
+    logger.info('Received termination signal. Shutting down gracefully...');
 
     this.server.close((err) => {
       if (err) {
-        console.error('Error closing server:', err);
+        logger.error('Error closing server:', err);
         process.exit(1);
       }
 
       // Terminate all agents before exiting
       this.lifecycleManager.killAllAgents()
         .then(() => {
-          console.log('Server and agents shut down successfully');
+          logger.info('Server and agents shut down successfully');
           process.exit(0);
         })
         .catch((error) => {
-          console.error('Error during shutdown:', error);
+          logger.error('Error during shutdown:', error);
           process.exit(1);
         });
     });

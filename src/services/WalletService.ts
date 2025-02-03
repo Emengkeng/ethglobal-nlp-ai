@@ -1,5 +1,7 @@
 import * as fs from 'fs';
 import { promisify } from 'util';
+import { logger } from '@/utils/LoggerService';
+
 
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
@@ -15,7 +17,7 @@ export class WalletService {
       }
       return undefined;
     } catch (error) {
-      console.error('Error reading wallet data:', error);
+      logger.error('Error reading wallet data:', error);
       return undefined;
     }
   }
@@ -24,7 +26,7 @@ export class WalletService {
     try {
       await writeFile(this.WALLET_DATA_FILE, data);
     } catch (error) {
-      console.error('Error saving wallet data:', error);
+      logger.error('Error saving wallet data:', error);
       throw error;
     }
   }

@@ -1,4 +1,6 @@
 import { SecureAgentContainer } from './infrastructure/agents/SecureAgentContainer';
+import { logger } from '@/utils/LoggerService';
+
 
 class AgentProcess {
   private container?: SecureAgentContainer;
@@ -28,20 +30,20 @@ class AgentProcess {
   }
 
   private async handleShutdown(signal: string) {
-    console.log(`Received ${signal} signal, preparing for shutdown...`);
+    logger.info(`Received ${signal} signal, preparing for shutdown...`);
     try {
       // Cleanup tasks
       await this.container?.cleanup();
-      console.log('Cleanup completed, shutting down...');
+      logger.info('Cleanup completed, shutting down...');
       process.exit(0);
     } catch (error) {
-      console.error('Error during shutdown:', error);
+      logger.error('Error during shutdown:', error);
       process.exit(1);
     }
   }
 
   private async handleError(error: Error) {
-    console.error('Unhandled error:', error);
+    logger.error('Unhandled error:', error);
     await this.handleShutdown('ERROR');
   }
 }
@@ -49,6 +51,6 @@ class AgentProcess {
 // Start the agent process
 const agentProcess = new AgentProcess();
 agentProcess.start().catch(error => {
-  console.error('Failed to start agent container:', error);
+  logger.error('Failed to start agent container:', error);
   process.exit(1);
 });
