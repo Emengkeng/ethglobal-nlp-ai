@@ -202,7 +202,8 @@ export class SecureAgentContainer {
       payload: {
         ...payload,
         originalMessageId: originalMessage.metadata.messageId,
-        userId: originalMessage.metadata.userId
+        userId: originalMessage.metadata.userId,
+        correlationId: originalMessage.payload.correlationId
       },
     });
   }
@@ -211,9 +212,10 @@ export class SecureAgentContainer {
     await this.messageQueue.publishToAgent(this.agentId, {
       type: 'response',
       payload: {
-        userId: this.userId, // Add the userId to the payload
+        userId: this.userId,
         error: error.message || 'Unknown error',
-        originalMessageId: originalMessage.metadata.messageId
+        originalMessageId: originalMessage.metadata.messageId,
+        correlationId: originalMessage.payload.correlationId 
       }
     });
   }

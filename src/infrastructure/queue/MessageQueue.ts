@@ -52,32 +52,54 @@ export class MessageQueue {
     throw new Error('Failed to reconnect to message queue');
   }
 
-  async subscribeToAgent(agentId: string, callback: (msg: QueueMessage) => Promise<void>): Promise<string> {
+  async subscribeToAgent(
+    agentId: string, 
+    callback: (msg: QueueMessage) => Promise<void>,
+    options?: { consumerTag?: string }
+  ): Promise<string> {
     if (!this.channel) throw new Error('Queue not initialized');
   
     const queueName = `agent.${agentId}`;
     await this.channel.assertQueue(queueName, { durable: true });
     await this.channel.bindQueue(queueName, this.exchangeName, `agent.${agentId}.*`);
   
-    const { consumerTag } = await this.channel.consume(queueName, async (msg: ConsumeMessage | null) => {
-      if (!msg) return;
-      
-      try {
-        const message: QueueMessage = JSON.parse(msg.content.toString());
-        await callback(message);
-        this.channel?.ack(msg);
-      } catch (error) {
-        logger.error('Error processing message:', error);
+    const { consumerTag } = await this.channel.consume(
+      queueName, 
+      async (msg: ConsumeMessage | null) => {
+        if (!msg) return;
         
-        if (error instanceof SyntaxError) {
-          this.channel?.reject(msg, false);
-        } else {
-          this.channel?.nack(msg, false, !msg.fields.redelivered);
+        try {
+          const message: QueueMessage = JSON.parse(msg.content.toString());
+          await callback(message);
+          this.channel?.ack(msg);
+        } catch (error) {
+          logger.error('Error processing message:', error);
+          
+          if (error instanceof SyntaxError) {
+            this.channel?.reject(msg, false);
+          } else {
+            this.channel?.nack(msg, false, !msg.fields.redelivered);
+          }
         }
+      },
+      { 
+        consumerTag: options?.consumerTag 
       }
-    });
+    );
   
     return consumerTag;
+  }
+
+  async unsubscribeFromAgent(agentId: string, consumerTag: string): Promise<void> {
+    if (!this.channel) throw new Error('Queue not initialized');
+    
+    try {
+      await this.channel.cancel(consumerTag);
+      logger.info(`Unsubscribed from agent queue`, { agentId, consumerTag });
+    } catch (error) {
+      logger.error(`Error unsubscribing from agent queue`, { agentId, consumerTag, error });
+      throw error;
+    }
   }
 
   async publishToAgent(agentId: string, message: Omit<QueueMessage, 'metadata'> & { payload: { userId: string } }) {

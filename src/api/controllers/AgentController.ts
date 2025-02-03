@@ -135,23 +135,39 @@ export class AgentController {
         const correlationId = Math.random().toString(36).substring(7);
         logger.info(`Generated correlation ID: ${correlationId}`);
   
-        const subscription = await this.messageQueue.subscribeToAgent(agentId, async (msg) => {
-          logger.info(`Received message`, { 
-            type: msg.type, 
-            receivedUserId: msg.metadata.userId,
-            expectedUserId: userId,
-            correlationId
-          });
+        // Create a unique consumer tag to ensure this specific subscription
+        const consumerTag = `${agentId}-${userId}-${correlationId}`;
   
-          if (msg.type === 'response' && msg.metadata.userId === userId) {
-            clearTimeout(timeout);
-            logger.info(`Matched response received`, { agentId, userId, correlationId });
-            resolve(msg.payload);
-          }
-          return Promise.resolve();
-        });
+        const subscription = await this.messageQueue.subscribeToAgent(
+          agentId, 
+          async (msg) => {
+            logger.info(`Received message`, { 
+              type: msg.type, 
+              receivedUserId: msg.metadata.userId,
+              expectedUserId: userId,
+              correlationId: msg.payload?.correlationId
+            });
   
-        logger.info(`Subscription created`, { agentId, subscription });
+            // More precise matching with correlationId
+            if (
+              msg.type === 'response' && 
+              msg.metadata.userId === userId && 
+              msg.payload?.correlationId === correlationId
+            ) {
+              clearTimeout(timeout);
+              logger.info(`Matched response received`, { agentId, userId, correlationId });
+              
+              // Unsubscribe to prevent further message processing
+              await this.messageQueue.unsubscribeFromAgent(agentId, consumerTag);
+              
+              resolve(msg.payload);
+            }
+            return Promise.resolve();
+          },
+          { consumerTag }  // Pass the unique consumer tag
+        );
+  
+        logger.info(`Subscription created`, { agentId, subscription, consumerTag });
   
         await this.messageQueue.publishToAgent(agentId, {
           type: 'command',
@@ -159,7 +175,7 @@ export class AgentController {
             command: 'PROCESS_MESSAGE',
             userId,
             message,
-            correlationId
+            correlationId  // Include correlation ID in payload
           }
         });
   
