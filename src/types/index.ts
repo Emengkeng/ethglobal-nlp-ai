@@ -10,4 +10,4 @@ export interface WalletConfig {
 }
 
 export const MAX_AGENTS_PER_USER = 1;
-export const MAX_SYSTEM_AGENTS = 2;
+export const MAX_SYSTEM_AGENTS = 10;

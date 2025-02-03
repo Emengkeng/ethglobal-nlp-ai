@@ -20,26 +20,45 @@ export class SecureAgentContainer {
 
   async initialize(): Promise<void> {
     try {
-      // Initialize message queue
-      //await this.messageQueue.initialize();
-
-      // Initialize agent with isolated wallet
+      logger.info(`Initializing SecureAgentContainer`, { 
+        userId: this.userId, 
+        agentId: this.agentId 
+      });
+  
       const { agent, config } = await AgentService.initialize();
+      logger.debug(`Agent initialized`, { 
+        agentType: agent.constructor.name,
+        configKeys: Object.keys(config) 
+      });
+  
       this.agent = agent;
       this.config = config;
-
-      // Subscribe to agent messages
+  
       await this.subscribeToMessages();
       
-      logger.info(`Agent ${this.agentId} initialized successfully`);
+      logger.info(`Agent container fully initialized`, { 
+        userId: this.userId, 
+        agentId: this.agentId 
+      });
     } catch (error) {
-      logger.error(`Failed to initialize agent ${this.agentId}:`, error);
+      logger.error(`Initialization failed`, { 
+        userId: this.userId, 
+        agentId: this.agentId, 
+        error: error 
+      });
       throw error;
     }
   }
 
   private async subscribeToMessages(): Promise<void> {
+    logger.info(`Setting up message subscription`, { agentId: this.agentId });
+    
     await this.messageQueue.subscribeToAgent(this.agentId, async (message: QueueMessage) => {
+      logger.debug(`Received message`, { 
+        type: message.type, 
+        agentId: this.agentId 
+      });
+  
       try {
         switch (message.type) {
           case 'command':
@@ -49,11 +68,17 @@ export class SecureAgentContainer {
             await this.handleEvent(message);
             break;
           default:
-            logger.warn(`Unknown message type: ${message.type}`);
+            logger.warn(`Unrecognized message type`, { 
+              type: message.type, 
+              agentId: this.agentId 
+            });
         }
       } catch (error) {
-        logger.error(`Error processing message for agent ${this.agentId}:`, error);
-        // Send error response
+        logger.error(`Message processing error`, { 
+          agentId: this.agentId, 
+          messageType: message.type, 
+          error: error 
+        });
         await this.sendErrorResponse(message, error);
       }
     });
@@ -61,20 +86,27 @@ export class SecureAgentContainer {
 
   private async handleCommand(message: QueueMessage): Promise<void> {
     const { command, payload } = message.payload;
-    logger.info(`Handling command`, { command, userId: payload.userId });
+    
+    logger.info(`Processing command`, { 
+      command, 
+      userId: payload.userId,
+      correlationId: payload.correlationId 
+    });
   
     try {
       switch (command) {
         case 'PROCESS_MESSAGE':
-          logger.debug(`Processing message`, { 
+          logger.debug(`Executing message processing`, { 
             userId: payload.userId,
+            messageLength: payload.message.length,
             correlationId: payload.correlationId 
           });
           
           const response = await this.processUserMessage(payload.message);
           
-          logger.debug(`Sending response`, {
+          logger.info(`Message processed successfully`, {
             userId: payload.userId,
+            responseCount: response.length,
             correlationId: payload.correlationId
           });
           
@@ -82,13 +114,17 @@ export class SecureAgentContainer {
           break;
   
         default:
+          logger.warn(`Unsupported command`, { 
+            command, 
+            userId: payload.userId 
+          });
           throw new Error(`Unknown command: ${command}`);
       }
     } catch (error) {
-      logger.error(`Error handling command`, {
+      logger.error(`Command handling failed`, {
         command,
         userId: payload.userId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error,
       });
       await this.sendErrorResponse(message, error);
     }
@@ -108,26 +144,48 @@ export class SecureAgentContainer {
   }
 
   private async processUserMessage(message: string): Promise<any> {
-    const stream = await this.agent.stream(
-      { messages: [new HumanMessage(message)] },
-      this.config
-    );
-
-    const responses = [];
-    for await (const chunk of stream) {
-      if ('agent' in chunk) {
-        responses.push({
-          type: 'agent',
-          content: chunk.agent.messages[0].content
+    logger.info(`Processing user message`, { 
+      messageLength: message.length 
+    });
+  
+    try {
+      const stream = await this.agent.stream(
+        { messages: [new HumanMessage(message)] },
+        this.config
+      );
+  
+      const responses = [];
+      for await (const chunk of stream) {
+        logger.debug('Processing stream chunk', { 
+          chunkType: chunk && Object.keys(chunk)[0] 
         });
-      } else if ('tools' in chunk) {
-        responses.push({
-          type: 'tools',
-          content: chunk.tools.messages[0].content
-        });
+        
+        if ('agent' in chunk) {
+          responses.push({
+            type: 'agent',
+            content: chunk.agent.messages[0].content
+          });
+        } else if ('tools' in chunk) {
+          responses.push({
+            type: 'tools',
+            content: chunk.tools.messages[0].content
+          });
+        }
       }
+      
+      logger.info(`Message processing completed`, { 
+        responseCount: responses.length,
+        responseTypes: responses.map(r => r.type)
+      });
+  
+      return responses;
+    } catch (error) {
+      logger.error('Comprehensive message processing error', {
+        message,
+        error: error,
+      });
+      throw error;
     }
-    return responses;
   }
 
   private async sendResponse(originalMessage: QueueMessage, payload: any): Promise<void> {
