@@ -59,7 +59,7 @@ export class DockerDeployment {
           RestartPolicy: {
             Name: 'unless-stopped'
           },
-          NetworkMode: 'bridge',
+          NetworkMode: 'host',
           LogConfig: {
             Type: 'json-file',
             Config: {

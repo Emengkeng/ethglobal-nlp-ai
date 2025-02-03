@@ -20,12 +20,34 @@ export class AgentController {
       logger.info(`Handling message for user: ${userId}`);
       
       const agentId = await this.lifecycleManager.handleUserActivity(userId);
-      logger.debug(`Agent ID assigned: ${agentId}`);
+      logger.info(`Agent ID assigned: ${agentId}`);
 
       const response = await this.sendMessageToAgent(agentId, userId, message);
       
       logger.info(`Message processed successfully for user: ${userId}`);
       res.json({ success: true, response });
+    } catch (error) {
+      logger.error('Error handling message', { 
+        userId, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+      res.status(500).json({ error: 'Failed to process message' });
+    }
+  }
+
+  async createAgent(req: Request, res: Response) {
+    const { userId } = req.body;
+
+    try {
+      logger.info(`Creating Agent for user: ${userId}`);
+      
+      const agentId = await this.lifecycleManager.createAgent(userId);
+      logger.info(`Agent ID assigned: ${agentId}`);
+
+      //const response = await this.sendMessageToAgent(agentId, userId);
+      
+      logger.info(`Agent created successfully for user: ${userId}`);
+      res.json({ success: true, agentId });
     } catch (error) {
       logger.error('Error handling message', { 
         userId, 
@@ -71,7 +93,7 @@ export class AgentController {
       
       const status = await this.lifecycleManager.getTerminationStatus();
       
-      logger.debug('Termination status retrieved', { status });
+      logger.info('Termination status retrieved', { status });
 
       res.json({
         success: true,
@@ -94,38 +116,64 @@ export class AgentController {
   }
 
   private async sendMessageToAgent(agentId: string, userId: string, message: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      logger.debug(`Sending message to agent`, { agentId, userId });
-
+    return new Promise(async (resolve, reject) => {
+      logger.info(`Starting message send process`, { agentId, userId });
+      
       const timeout = setTimeout(() => {
-        logger.warn(`Agent response timeout for agent: ${agentId}, user: ${userId}`);
+        logger.error(`Timeout reached for agent response`, { agentId, userId });
         reject(new Error('Agent response timeout'));
       }, 90000);
-
-      this.messageQueue.subscribeToAgent(agentId, async (msg) => {
-        if (msg.type === 'response' && msg.metadata.userId === userId) {
-          clearTimeout(timeout);
-          logger.info(`Received response from agent`, { agentId, userId });
-          resolve(msg.payload);
+  
+      try {
+        // Verify queue connection
+        if (!this.messageQueue.channel) {
+          logger.error(`No channel available`, { agentId, userId });
+          await this.messageQueue.initialize();
         }
-        return Promise.resolve();
-      });
-
-      this.messageQueue.publishToAgent(agentId, {
-        type: 'command',
-        payload: {
-          command: 'PROCESS_MESSAGE',
-          userId,
-          message
-        }
-      }).catch(error => {
-        logger.error('Failed to publish message to agent', { 
+  
+        // Create unique correlation ID for this request
+        const correlationId = Math.random().toString(36).substring(7);
+        logger.info(`Generated correlation ID: ${correlationId}`);
+  
+        const subscription = await this.messageQueue.subscribeToAgent(agentId, async (msg) => {
+          logger.info(`Received message`, { 
+            type: msg.type, 
+            receivedUserId: msg.metadata.userId,
+            expectedUserId: userId,
+            correlationId
+          });
+  
+          if (msg.type === 'response' && msg.metadata.userId === userId) {
+            clearTimeout(timeout);
+            logger.info(`Matched response received`, { agentId, userId, correlationId });
+            resolve(msg.payload);
+          }
+          return Promise.resolve();
+        });
+  
+        logger.info(`Subscription created`, { agentId, subscription });
+  
+        await this.messageQueue.publishToAgent(agentId, {
+          type: 'command',
+          payload: {
+            command: 'PROCESS_MESSAGE',
+            userId,
+            message,
+            correlationId
+          }
+        });
+  
+        logger.info(`Message published`, { agentId, userId, correlationId });
+  
+      } catch (error) {
+        logger.error(`Error in message flow`, { 
           agentId, 
           userId, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
+        clearTimeout(timeout);
         reject(error);
-      });
+      }
     });
   }
 }

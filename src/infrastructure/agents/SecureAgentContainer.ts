@@ -61,25 +61,36 @@ export class SecureAgentContainer {
 
   private async handleCommand(message: QueueMessage): Promise<void> {
     const { command, payload } = message.payload;
-
-    switch (command) {
-      case 'PROCESS_MESSAGE':
-        const response = await this.processUserMessage(payload.message);
-        await this.sendResponse(message, response);
-        break;
-
-      case 'SAVE_STATE':
-        const state = await this.exportState();
-        await this.sendResponse(message, { state });
-        break;
-
-      case 'LOAD_STATE':
-        await this.importState(payload.state);
-        await this.sendResponse(message, { success: true });
-        break;
-
-      default:
-        throw new Error(`Unknown command: ${command}`);
+    logger.info(`Handling command`, { command, userId: payload.userId });
+  
+    try {
+      switch (command) {
+        case 'PROCESS_MESSAGE':
+          logger.debug(`Processing message`, { 
+            userId: payload.userId,
+            correlationId: payload.correlationId 
+          });
+          
+          const response = await this.processUserMessage(payload.message);
+          
+          logger.debug(`Sending response`, {
+            userId: payload.userId,
+            correlationId: payload.correlationId
+          });
+          
+          await this.sendResponse(message, response);
+          break;
+  
+        default:
+          throw new Error(`Unknown command: ${command}`);
+      }
+    } catch (error) {
+      logger.error(`Error handling command`, {
+        command,
+        userId: payload.userId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      await this.sendErrorResponse(message, error);
     }
   }
 
@@ -124,8 +135,9 @@ export class SecureAgentContainer {
       type: 'response',
       payload: {
         ...payload,
-        originalMessageId: originalMessage.metadata.messageId
-      }
+        originalMessageId: originalMessage.metadata.messageId,
+        userId: originalMessage.metadata.userId
+      },
     });
   }
 

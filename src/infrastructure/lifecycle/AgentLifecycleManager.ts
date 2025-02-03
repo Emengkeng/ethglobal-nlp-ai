@@ -34,30 +34,62 @@ export class AgentLifecycleManager {
   }
 
   async handleUserActivity(userId: string): Promise<string> {
+    logger.info(`Handling user activity`, { 
+      userId, 
+      action: 'handleUserActivity' 
+    });
+  
     // Get or create agent for user
     const agentState = await this.getAgentState(userId);
     
     if (!agentState) {
       // New user signup - create agent
+      logger.info(`No existing agent found for user`, { 
+        userId, 
+        action: 'createNewAgent' 
+      });
       return this.createAgent(userId);
     }
-
+  
+    logger.debug(`Existing agent state found`, { 
+      userId, 
+      agentId: agentState.agentId, 
+      status: agentState.status 
+    });
+  
     if (agentState.status === 'frozen') {
       // User returning - unfreeze agent
+      logger.info(`Unfreezing frozen agent`, { 
+        userId, 
+        agentId: agentState.agentId, 
+        action: 'unfreezeAgent' 
+      });
       return this.unfreezeAgent(agentState);
     }
-
+  
     if (agentState.status === 'error') {
       // Agent in error state - attempt recovery
+      logger.warn(`Agent in error state, attempting recovery`, { 
+        userId, 
+        agentId: agentState.agentId, 
+        action: 'recoverAgent' 
+      });
       return this.recoverAgent(agentState);
     }
-
+  
     // Update last activity timestamp
     await this.updateAgentActivity(agentState.agentId);
+    
+    logger.info(`User activity handled successfully`, { 
+      userId, 
+      agentId: agentState.agentId, 
+      action: 'updateActivity' 
+    });
+  
     return agentState.agentId;
   }
 
-  private async createAgent(userId: string): Promise<string> {
+  public async createAgent(userId: string): Promise<string> {
     logger.info(`Attempting to create new agent for user ${userId}`);
 
     // Check both user and system limits
@@ -258,13 +290,16 @@ export class AgentLifecycleManager {
 
   private async waitForAgentReady(agentId: string): Promise<void> {
     const startTime = Date.now();
+    logger.debug(`Waiting for agent ${agentId} to be ready`, { timeout: this.STARTUP_TIMEOUT });
     
     while (Date.now() - startTime < this.STARTUP_TIMEOUT) {
       try {
-        // Try to get health check response from agent
         const response = await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Health check timeout')), 5000);
-
+          const timeout = setTimeout(() => {
+            logger.warn(`Health check timeout for agent ${agentId}`);
+            reject(new Error('Health check timeout'));
+          }, 5000);
+  
           this.messageQueue.publishToAgent(agentId, {
             type: 'event',
             payload: {
@@ -272,24 +307,25 @@ export class AgentLifecycleManager {
               userId: 'system'
             }
           });
-
-          // Make the callback async
+  
           this.messageQueue.subscribeToAgent(agentId, async (msg) => {
             if (msg.type === 'response' && msg.payload.status === 'healthy') {
               clearTimeout(timeout);
+              logger.info(`Agent ${agentId} is ready`);
               resolve(msg);
             }
-            // Need to return a Promise
             return Promise.resolve();
           });
         });
-
+  
         if (response) return;
       } catch (error) {
+        logger.debug(`Retrying agent readiness check for ${agentId}`, { error });
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
-
+  
+    logger.error(`Agent ${agentId} failed to start within timeout`);
     throw new Error(`Agent ${agentId} failed to start within timeout`);
   }
 
@@ -372,43 +408,88 @@ export class AgentLifecycleManager {
 
   private async checkAgentLimits(userId: string): Promise<void> {
     const { userCount, systemCount } = await this.getActiveAgentCounts(userId);
-
+  
+    logger.info(`Agent limit check for user ${userId}`, { 
+      userCount, 
+      systemCount, 
+      maxUserAgents: MAX_AGENTS_PER_USER, 
+      maxSystemAgents: MAX_SYSTEM_AGENTS 
+    });
+  
     if (userCount >= MAX_AGENTS_PER_USER) {
-        throw new AgentLimitError(
-            `Cannot create new agent. User ${userId} has reached the maximum limit of ${MAX_AGENTS_PER_USER} agents.`,
-            'user'
-        );
+      logger.warn(`User ${userId} has reached agent limit`, { 
+        currentCount: userCount, 
+        maxAllowed: MAX_AGENTS_PER_USER 
+      });
+      throw new AgentLimitError(
+        `Cannot create new agent. User ${userId} has reached the maximum limit of ${MAX_AGENTS_PER_USER} agents.`,
+        'user'
+      );
     }
-
+  
     if (systemCount >= MAX_SYSTEM_AGENTS) {
-        throw new AgentLimitError(
-            `Cannot create new agent. System has reached the maximum limit of ${MAX_SYSTEM_AGENTS} agents.`,
-            'system'
-        );
+      logger.warn('System agent limit reached', { 
+        currentCount: systemCount, 
+        maxAllowed: MAX_SYSTEM_AGENTS 
+      });
+      throw new AgentLimitError(
+        `Cannot create new agent. System has reached the maximum limit of ${MAX_SYSTEM_AGENTS} agents.`,
+        'system'
+      );
     }
   }
 
   private async getAgentState(userId: string): Promise<AgentState | null> {
     try {
+      logger.debug(`Retrieving agent state for user`, { 
+        userId,
+        action: 'getAgentState' 
+      });
+  
       // Get agent ID for user
       const agentId = await this.redis.get(`user:${userId}:agentId`);
-      if (!agentId) return null;
+      if (!agentId) {
+        logger.info(`No agent ID found for user`, { 
+          userId,
+          action: 'noAgentIdFound' 
+        });
+        return null;
+      }
       
       // Get agent state
       const stateData = await this.redis.get(`agent:${agentId}:state`);
-      if (!stateData) return null;
-
+      if (!stateData) {
+        logger.warn(`No state data found for agent`, { 
+          userId,
+          agentId,
+          action: 'noStateDataFound' 
+        });
+        return null;
+      }
+  
       const state = JSON.parse(stateData);
-
+  
       // Convert date strings back to Date objects
       state.lastActivity = new Date(state.lastActivity);
       state.createdAt = new Date(state.createdAt);
       if (state.lastFrozen) state.lastFrozen = new Date(state.lastFrozen);
       if (state.lastUnfrozen) state.lastUnfrozen = new Date(state.lastUnfrozen);
-
+  
+      logger.debug(`Agent state retrieved successfully`, { 
+        userId,
+        agentId,
+        status: state.status,
+        lastActivity: state.lastActivity,
+        action: 'agentStateRetrieved' 
+      });
+  
       return state;
     } catch (error) {
-      logger.error(`Error getting agent state for user ${userId}:`, error);
+      logger.error(`Error getting agent state for user`, { 
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        action: 'getAgentStateError' 
+      });
       return null;
     }
   }
@@ -467,32 +548,37 @@ export class AgentLifecycleManager {
   // Kill All agent 
   private async killAgent(agentId: string): Promise<void> {
     try {
+      logger.info(`Attempting to kill agent ${agentId}`);
       const state = await this.getAgentState(agentId);
+      
       if (!state) {
+        logger.warn(`No state found for agent ${agentId}`);
         throw new Error(`No state found for agent ${agentId}`);
       }
   
-      // Ensure we have a valid container ID
       if (!state.containerId) {
+        logger.warn(`No container ID found for agent ${agentId}`);
         throw new Error(`No container ID found for agent ${agentId}`);
       }
   
-      // Remove the container forcefully
       const oldContainer = this.docker.getContainer(state.containerId);
       await oldContainer.remove({ force: true });
       
-      // Update agent state to terminated
       state.status = 'stopping';
       state.lastActivity = new Date();
       await this.saveAgentState(state);
       
-      // Optional: Remove Redis entries if needed
       await this.redis.del(`user:${state.userId}:agentId`);
       await this.redis.del(`agent:${agentId}:state`);
       
-      logger.info(`Successfully terminated and removed container for agent ${agentId}`);
+      logger.info(`Successfully terminated and removed container for agent ${agentId}`, {
+        userId: state.userId,
+        containerId: state.containerId
+      });
     } catch (error) {
-      logger.error(`Error terminating agent ${agentId}:`, error);
+      logger.error(`Error terminating agent ${agentId}`, { 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
       throw new AgentTerminationError(`Failed to terminate agent ${agentId}: ${error}`, agentId);
     }
   }

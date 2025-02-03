@@ -6,6 +6,7 @@ const agentController = new AgentController();
 
 // Existing message handling route
 router.post('/message', (req, res) => agentController.handleMessage(req, res));
+router.post('/create', (req, res) => agentController.createAgent(req, res));
 
 // New routes for agent management
 router.post('/kill-all', (req, res) => agentController.killAllAgents(req, res));

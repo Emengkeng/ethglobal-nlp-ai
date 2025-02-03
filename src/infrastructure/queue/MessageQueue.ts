@@ -15,7 +15,7 @@ export interface QueueMessage {
 
 export class MessageQueue {
   private connection?: Connection;
-  private channel?: Channel;
+  public channel?: Channel;
   private readonly exchangeName = 'trading-agents';
   
   constructor(
@@ -52,15 +52,15 @@ export class MessageQueue {
     throw new Error('Failed to reconnect to message queue');
   }
 
-  async subscribeToAgent(agentId: string, callback: (msg: QueueMessage) => Promise<void>) {
+  async subscribeToAgent(agentId: string, callback: (msg: QueueMessage) => Promise<void>): Promise<string> {
     if (!this.channel) throw new Error('Queue not initialized');
-
+  
     const queueName = `agent.${agentId}`;
     await this.channel.assertQueue(queueName, { durable: true });
     await this.channel.bindQueue(queueName, this.exchangeName, `agent.${agentId}.*`);
-
-    await this.channel.consume(queueName, async (msg: ConsumeMessage | null) => {
-      if (!msg) return; // Handle null message case
+  
+    const { consumerTag } = await this.channel.consume(queueName, async (msg: ConsumeMessage | null) => {
+      if (!msg) return;
       
       try {
         const message: QueueMessage = JSON.parse(msg.content.toString());
@@ -70,14 +70,14 @@ export class MessageQueue {
         logger.error('Error processing message:', error);
         
         if (error instanceof SyntaxError) {
-          // Invalid JSON - reject message without requeue
           this.channel?.reject(msg, false);
         } else {
-          // Other errors - only requeue if not previously redelivered
           this.channel?.nack(msg, false, !msg.fields.redelivered);
         }
       }
     });
+  
+    return consumerTag;
   }
 
   async publishToAgent(agentId: string, message: Omit<QueueMessage, 'metadata'> & { payload: { userId: string } }) {
