@@ -17,7 +17,7 @@ export class MessageQueue {
   private readonly exchangeName = 'trading-agents';
   
   constructor(
-    private readonly url: string = process.env.RABBITMQ_URL || 'amqp://localhost'
+    private readonly url: string = process.env.RABBITMQ_URL || 'amqp://user:password@localhost:5672'
   ) {}
 
   async initialize(): Promise<void> {

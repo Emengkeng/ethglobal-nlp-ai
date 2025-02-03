@@ -79,7 +79,7 @@ export class AgentController {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Agent response timeout'));
-      }, 30000);
+      }, 90000);
 
       // Make the callback async
       this.messageQueue.subscribeToAgent(agentId, async (msg) => {
