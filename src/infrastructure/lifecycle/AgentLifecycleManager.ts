@@ -51,7 +51,7 @@ export class AgentLifecycleManager {
       return this.createAgent(userId);
     }
   
-    logger.debug(`Existing agent state found`, { 
+    logger.info(`Existing agent state found`, { 
       userId, 
       agentId: agentState.agentId, 
       status: agentState.status 
@@ -290,7 +290,7 @@ export class AgentLifecycleManager {
 
   private async waitForAgentReady(agentId: string): Promise<void> {
     const startTime = Date.now();
-    logger.debug(`Waiting for agent ${agentId} to be ready`, { timeout: this.STARTUP_TIMEOUT });
+    logger.info(`Waiting for agent ${agentId} to be ready`, { timeout: this.STARTUP_TIMEOUT });
     
     while (Date.now() - startTime < this.STARTUP_TIMEOUT) {
       try {
@@ -298,7 +298,7 @@ export class AgentLifecycleManager {
           const timeout = setTimeout(() => {
             logger.warn(`Health check timeout for agent ${agentId}`);
             reject(new Error('Health check timeout'));
-          }, 5000);
+          }, 50000);
   
           this.messageQueue.publishToAgent(agentId, {
             type: 'event',
@@ -320,7 +320,7 @@ export class AgentLifecycleManager {
   
         if (response) return;
       } catch (error) {
-        logger.debug(`Retrying agent readiness check for ${agentId}`, { error });
+        logger.info(`Retrying agent readiness check for ${agentId}`, { error });
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
@@ -441,7 +441,7 @@ export class AgentLifecycleManager {
 
   private async getAgentState(userId: string): Promise<AgentState | null> {
     try {
-      logger.debug(`Retrieving agent state for user`, { 
+      logger.info(`Retrieving agent state for user`, { 
         userId,
         action: 'getAgentState' 
       });
@@ -475,7 +475,7 @@ export class AgentLifecycleManager {
       if (state.lastFrozen) state.lastFrozen = new Date(state.lastFrozen);
       if (state.lastUnfrozen) state.lastUnfrozen = new Date(state.lastUnfrozen);
   
-      logger.debug(`Agent state retrieved successfully`, { 
+      logger.info(`Agent state retrieved successfully`, { 
         userId,
         agentId,
         status: state.status,

@@ -26,7 +26,7 @@ export class SecureAgentContainer {
       });
   
       const { agent, config } = await AgentService.initialize();
-      logger.debug(`Agent initialized`, { 
+      logger.info(`Agent initialized`, { 
         agentType: agent.constructor.name,
         configKeys: Object.keys(config) 
       });
@@ -54,7 +54,7 @@ export class SecureAgentContainer {
     logger.info(`Setting up message subscription`, { agentId: this.agentId });
     
     await this.messageQueue.subscribeToAgent(this.agentId, async (message: QueueMessage) => {
-      logger.debug(`Received message`, { 
+      logger.info(`Received message`, { 
         type: message.type, 
         agentId: this.agentId 
       });
@@ -85,29 +85,29 @@ export class SecureAgentContainer {
   }
 
   private async handleCommand(message: QueueMessage): Promise<void> {
-    const { command, payload } = message.payload;
+    const { command } = message.payload;
     
     logger.info(`Processing command`, { 
       command, 
-      userId: payload.userId,
-      correlationId: payload.correlationId 
+      userId: message.payload.userId,
+      correlationId: message.payload.correlationId 
     });
   
     try {
       switch (command) {
         case 'PROCESS_MESSAGE':
-          logger.debug(`Executing message processing`, { 
-            userId: payload.userId,
-            messageLength: payload.message.length,
-            correlationId: payload.correlationId 
+          logger.info(`Executing message processing`, { 
+            userId: message.payload.userId,
+            messageLength: message.payload.message.length,
+            correlationId: message.payload.correlationId 
           });
           
-          const response = await this.processUserMessage(payload.message);
+          const response = await this.processUserMessage(message.payload.message);
           
           logger.info(`Message processed successfully`, {
-            userId: payload.userId,
+            userId: message.payload.userId,
             responseCount: response.length,
-            correlationId: payload.correlationId
+            correlationId: message.payload.correlationId
           });
           
           await this.sendResponse(message, response);
@@ -116,14 +116,14 @@ export class SecureAgentContainer {
         default:
           logger.warn(`Unsupported command`, { 
             command, 
-            userId: payload.userId 
+            userId: message.payload.userId 
           });
           throw new Error(`Unknown command: ${command}`);
       }
     } catch (error) {
       logger.error(`Command handling failed`, {
         command,
-        userId: payload.userId,
+        userId: message.payload.userId,
         error: error,
       });
       await this.sendErrorResponse(message, error);
@@ -144,6 +144,10 @@ export class SecureAgentContainer {
   }
 
   private async processUserMessage(message: string): Promise<any> {
+    if (!message) {
+      throw new Error('Empty message received');
+    }
+
     logger.info(`Processing user message`, { 
       messageLength: message.length 
     });
@@ -153,10 +157,14 @@ export class SecureAgentContainer {
         { messages: [new HumanMessage(message)] },
         this.config
       );
+
+      if (!stream) {
+        throw new Error('Stream initialization failed');
+      }
   
       const responses = [];
       for await (const chunk of stream) {
-        logger.debug('Processing stream chunk', { 
+        logger.info('Processing stream chunk', { 
           chunkType: chunk && Object.keys(chunk)[0] 
         });
         
@@ -227,6 +235,7 @@ export class SecureAgentContainer {
       this.config = state.config;
     }
   }
+
   async cleanup(): Promise<void> {
     try {
       // Save current state
