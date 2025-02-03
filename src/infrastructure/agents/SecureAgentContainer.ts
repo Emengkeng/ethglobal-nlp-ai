@@ -131,6 +131,7 @@ export class SecureAgentContainer {
     await this.messageQueue.publishToAgent(this.agentId, {
       type: 'response',
       payload: {
+        userId: this.userId, // Add the userId to the payload
         error: error.message || 'Unknown error',
         originalMessageId: originalMessage.metadata.messageId
       }
