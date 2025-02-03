@@ -4,9 +4,9 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import http from 'http';
 
-// Import route modules
 import agentRoutes from '@/api/routes/AgentRoutes';
 import { AgentLifecycleManager } from './infrastructure/lifecycle/AgentLifecycleManager';
+import { MessageQueue } from './infrastructure/queue/MessageQueue';
 
 class Server {
   private app: Application;
@@ -124,7 +124,13 @@ class Server {
       });
   }
 
-  public start(): void {
+  public async start(): Promise<void> {
+
+    // Initialize message queue
+    const messageQueue = new MessageQueue();
+    await messageQueue.initialize();
+
+
     // Create HTTP server
     this.server = http.createServer(this.app);
 
