@@ -28,6 +28,52 @@ export class AgentController {
     }
   }
 
+  async killAllAgents(req: Request, res: Response) {
+    try {
+      // Call killAllAgents method from lifecycle manager
+      const terminationResult = await this.lifecycleManager.killAllAgents();
+
+      // Perform any additional cleanup
+      await this.messageQueue.cleanup();
+
+      res.json({
+        success: terminationResult.success,
+        terminated: terminationResult.terminated,
+        failed: terminationResult.failed
+      });
+    } catch (error) {
+      console.error('Error killing all agents:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to kill all agents',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  async getTerminationStatus(req: Request, res: Response) {
+    try {
+      // Get termination status from lifecycle manager
+      const status = await this.lifecycleManager.getTerminationStatus();
+
+      res.json({
+        success: true,
+        status: {
+          activeAgents: status.activeAgents,
+          terminatedAgents: status.terminatedAgents,
+          failedAgents: status.failedAgents
+        }
+      });
+    } catch (error) {
+      console.error('Error getting termination status:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to retrieve termination status',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
   private async sendMessageToAgent(agentId: string, userId: string, message: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
