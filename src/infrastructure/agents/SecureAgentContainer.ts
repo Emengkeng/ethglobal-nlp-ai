@@ -69,43 +69,38 @@ export class SecureAgentContainer {
     });
     
     await this.messageQueue.subscribeToAgent(
-      this.agentId, 
+      this.agentId,  // Just pass agentId
       async (message: QueueMessage) => {
-      logger.info(`Received message`, { 
-        type: message.type, 
-        agentId: this.agentId,
-        instanceId: this.instanceId
-      });
-  
-      try {
-        switch (message.type) {
-          case 'command':
-            await this.handleCommand(message);
-            break;
-          case 'event':
-            await this.handleEvent(message);
-            break;
-          default:
-            logger.warn(`Unrecognized message type`, { 
-              type: message.type, 
-              agentId: this.agentId 
-            });
-        }
-      } catch (error) {
-        logger.error(`Message processing error`, { 
-          agentId: this.agentId, 
-          messageType: message.type, 
-          error: error 
+        logger.info(`Received message`, { 
+          type: message.type, 
+          agentId: this.agentId,
+          instanceId: this.instanceId
         });
-        await this.sendErrorResponse(message, error);
+    
+        try {
+          switch (message.type) {
+            case 'command':
+              await this.handleCommand(message);
+              break;
+            case 'event':
+              await this.handleEvent(message);
+              break;
+            default:
+              logger.warn(`Unrecognized message type`, { 
+                type: message.type, 
+                agentId: this.agentId 
+              });
+          }
+        } catch (error) {
+          logger.error(`Message processing error`, { 
+            agentId: this.agentId, 
+            messageType: message.type, 
+            error: error 
+          });
+          await this.sendErrorResponse(message, error);
+        }
       }
-    },
-    // {
-    //   filter: (msg) => 
-    //     msg.metadata.agentId === this.agentId && 
-    //     msg.type === 'command'
-    // }
-  );
+    );
   }
 
   private async handleCommand(message: QueueMessage): Promise<void> {
@@ -227,13 +222,12 @@ export class SecureAgentContainer {
   }
 
   private async sendResponse(originalMessage: QueueMessage, payload: any, requestId: string): Promise<void> {
-    await this.messageQueue.publishToAgent(this.agentId, {
+    await this.messageQueue.publishToAgent(this.agentId, {  // Just pass agentId
       type: 'response',
       payload: {
         ...payload,
         requestId,
         userId: originalMessage.metadata.userId,
-        //correlationId: originalMessage.payload.correlationId
       },
     });
   }

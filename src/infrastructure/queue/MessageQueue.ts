@@ -200,14 +200,23 @@ export class MessageQueue {
     logger.info('Subscribing to agent queue', { 
       agentId, 
       queueName: `agent.${agentId}`,
-      routingKey: `agent.${agentId}.*`
+      routingKey: `agent.${agentId}.#`
     });
   
     const queueName = `agent.${agentId}`;
     logger.info('passed queue Name')
-    await this.channel.assertQueue(queueName, { durable: true });
+    await this.channel.assertQueue(queueName, { 
+      durable: true,
+      arguments: {
+        'x-dead-letter-exchange': this.deadLetterExchangeName,
+        'x-message-ttl': 60000
+      }
+    });
     logger.info('passed assertQueue')
-    await this.channel.bindQueue(queueName, this.mainExchangeName, `agent.${agentId}.*`);
+
+    // More specific routing key pattern to avoid error
+    const routingKey = `agent.${agentId}.#`;
+    await this.channel.bindQueue(queueName, this.mainExchangeName, routingKey);
 
   
     logger.info('Starting message consumtion')
