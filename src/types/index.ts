@@ -28,4 +28,4 @@ export interface SubscriptionOptions {
 }
 
 export const MAX_AGENTS_PER_USER = 1;
-export const MAX_SYSTEM_AGENTS = 10;
+export const MAX_SYSTEM_AGENTS = 20;
