@@ -11,6 +11,8 @@ export interface QueueMessage {
     agentId: string;
     timestamp: number;
     messageId: string;
+    priority: 'low' | 'medium' | 'high';
+    attempts: number;
   };
 }
 
@@ -92,6 +94,102 @@ export class MessageQueue {
     throw new Error('Failed to reconnect to message queue after multiple attempts');
   }
 
+  // Dynamic agent pool management
+  async registerAgentInstance(agentId: string, instanceId: string): Promise<void> {
+    if (!this.agentPools.has(agentId)) {
+      this.agentPools.set(agentId, []);
+    }
+
+    const pool = this.agentPools.get(agentId)!;
+    if (!pool.includes(instanceId)) {
+      pool.push(instanceId);
+    }
+
+    // Setup queue for this specific agent instance
+    const queueName = `agent.${agentId}.${instanceId}`;
+    
+    if (!this.channel) throw new Error('Channel not initialized');
+
+    await this.channel.assertQueue(queueName, {
+      durable: true,
+      arguments: {
+        'x-dead-letter-exchange': this.deadLetterExchangeName,
+        'x-message-ttl': 60000, // 1-minute message timeout
+        'x-max-priority': 10    // Support priority messaging
+      }
+    });
+
+    await this.channel.bindQueue(queueName, this.mainExchangeName, `agent.${agentId}.*`);
+  }
+
+  async selectBestAgentInstance(agentId: string): Promise<string> {
+    const pool = this.agentPools.get(agentId);
+    if (!pool || pool.length === 0) {
+      throw new Error(`No agent instances available for ${agentId}`);
+    }
+
+    // Select instance with least current load
+    const instanceMetrics = pool.map(instanceId => ({
+      instanceId,
+      load: this.agentLoadMetrics.get(instanceId) || 0
+    }));
+
+    return instanceMetrics.reduce((min, current) => 
+      current.load < min.load ? current : min
+    ).instanceId;
+  }
+
+  async publishToAgent(
+    agentId: string, 
+    message: Omit<QueueMessage, 'metadata'> & { payload: { userId: string } }
+  ) {
+    if (!this.channel) throw new Error('Queue not initialized');
+
+    // Select best agent instance for load balancing
+    const selectedInstanceId = await this.selectBestAgentInstance(agentId);
+
+    const fullMessage: QueueMessage = {
+      ...message,
+      metadata: {
+        userId: message.payload.userId,
+        agentId,
+        timestamp: Date.now(),
+        messageId: uuidv4(),
+        priority: message.payload.priority || 'medium',
+        attempts: 0
+      }
+    };
+
+    const routingKey = `agent.${agentId}.${selectedInstanceId}.${message.type}`;
+    const published = this.channel.publish(
+      this.mainExchangeName,
+      routingKey,
+      Buffer.from(JSON.stringify(fullMessage)),
+      { 
+        persistent: true,
+        priority: this.getPriorityNumber(fullMessage.metadata.priority)
+      }
+    );
+
+    if (!published) {
+      throw new Error('Message could not be published to the queue');
+    }
+
+    // Update load metrics
+    this.agentLoadMetrics.set(selectedInstanceId, 
+      (this.agentLoadMetrics.get(selectedInstanceId) || 0) + 1
+    );
+  }
+
+  private getPriorityNumber(priority: string): number {
+    switch(priority) {
+      case 'high': return 9;
+      case 'medium': return 5;
+      case 'low': return 1;
+      default: return 5;
+    }
+  }
+
   async reconnect(retries = 5): Promise<void> {
     for (let i = 0; i < retries; i++) {
       try {
@@ -161,30 +259,44 @@ export class MessageQueue {
     }
   }
 
-  async publishToAgent(agentId: string, message: Omit<QueueMessage, 'metadata'> & { payload: { userId: string } }) {
-    if (!this.channel) throw new Error('Queue not initialized');
+   // Dead letter handling for failed messages
+   async setupDeadLetterHandling() {
+    if (!this.channel) throw new Error('Channel not initialized');
 
-    const fullMessage: QueueMessage = {
-      ...message,
-      metadata: {
-        userId: message.payload.userId,
-        agentId,
-        timestamp: Date.now(),
-        messageId: Math.random().toString(36).substring(7)
-      }
-    };
+    const deadLetterQueue = 'dead-letter-queue';
+    await this.channel.assertQueue(deadLetterQueue, { durable: true });
 
-    const routingKey = `agent.${agentId}.${message.type}`;
-    const published = this.channel.publish(
-      this.exchangeName,
-      routingKey,
-      Buffer.from(JSON.stringify(fullMessage)),
-      { persistent: true }
+    await this.channel.bindQueue(
+      deadLetterQueue, 
+      this.deadLetterExchangeName, 
+      '#'
     );
 
-    if (!published) {
-      throw new Error('Message could not be published to the queue');
-    }
+    await this.channel.consume(deadLetterQueue, async (msg) => {
+      if (!msg) return;
+
+      try {
+        const message: QueueMessage = JSON.parse(msg.content.toString());
+        
+        // Implement retry or error handling logic
+        if (message.metadata.attempts < 3) {
+          // Retry message
+          message.metadata.attempts++;
+          await this.publishToAgent(message.metadata.agentId, message);
+        } else {
+          // Permanent failure logging
+          logger.error('Permanently failed message', { 
+            message,
+            reason: 'Max retry attempts reached' 
+          });
+        }
+
+        this.channel?.ack(msg);
+      } catch (error) {
+        logger.error('Dead letter processing error', error);
+        this.channel?.nack(msg, false, false);
+      }
+    });
   }
 
   async cleanup(): Promise<void> {
@@ -199,9 +311,9 @@ export class MessageQueue {
         this.connection = undefined;
       }
 
-      logger.info('Message queue connections closed');
+      logger.info('Advanced message queue connections closed');
     } catch (error) {
-      logger.error('Error cleaning up message queue:', error);
+      logger.error('Error cleaning up advanced message queue:', error);
       throw error;
     }
   }
