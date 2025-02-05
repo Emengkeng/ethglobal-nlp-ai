@@ -41,7 +41,7 @@ export class DockerDeployment {
       // Create container config
       const container = await this.docker.createContainer({
         Image: 'trading-agent-image:latest',
-        name: `trading-agent-${agentId}`,
+        name: `${agentId}`,
         Env: [
           `USER_ID=${userId}`,
           `AGENT_ID=${agentId}`,
