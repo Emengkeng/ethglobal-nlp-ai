@@ -1,3 +1,31 @@
+# [1.4.0](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.3.4...v1.4.0) (2025-02-05)
+
+
+### Bug Fixes
+
+* filter issues ([65e1668](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/65e16680197b8347dc6004a90fc737293e0d2c3d))
+* proper import of QueueMessage ([276b1a8](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/276b1a8a4ff11817130201a802ab828c96b4b9fc))
+* subscribe now works with filter ([cfc32d9](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/cfc32d9e5de6c2a56f226a8633fdda852605784a))
+* wrong reference of agent id ([8ea59bd](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/8ea59bddd631d2346291938ec570ac0b53b785f8))
+
+
+### Features
+
+* added load balancing,message priority, and fault tolerance ([bf4fe60](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/bf4fe60a926431461d244b4768ddd7bdbe6ea04d))
+* added needed import ([ac789d5](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/ac789d5c0ef7a9a4629967a51c146b25e98a40ad))
+* added unique instance identifier ([d1fb337](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/d1fb3371162070a316fca94a3cdad7806d4c0943))
+* adjust handle message to work with uiid and message routing ([1d1bb57](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/1d1bb57a30bdfc8008fd3785cecefa87e97b27eb))
+* change initialize in preparation for  message routing and load balancing strategy ([32cf846](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/32cf846a7e028e54d16c0378bc9e8b279c17f6c7))
+* completely invalid old agent name ([e41697f](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/e41697f38a0624954a2b23e3131ce4722b0a403b))
+* initialize dead letter handling ([4c53994](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/4c539945e6778e52c8db64ba36374d84019fa116))
+* intelligentReconnect for  instance selection based on current load ([1639613](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/1639613177ef5ca340bea667b8b1e5433233dc2c))
+* proper connection management ([81461a7](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/81461a7400935be6637981483b6d2df35133dcfc))
+* register agent instance ([f4cf36a](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/f4cf36a8e22315bffcfcd2bd89e561811b2969a1))
+* subscription interface for filter ([9cd6fe8](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/9cd6fe88faf0681d4302cecc2c33673860da3303))
+* switch from correlationId to requestId ([c64d3c3](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/c64d3c370a51c8b1b7e9186b9f0fee3bc3626673))
+* switch from correlationId to requestId ([a63602e](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/a63602ef2f713f465d6198dc91bf62a007e24d6c))
+* wait for agent response now included ([87e133e](https://github.com/Emengkeng/ethglobal-nlp-ai/commit/87e133e54971d70b0fa0faf730e18fa0b2675c05))
+
 ## [1.3.4](https://github.com/Emengkeng/ethglobal-nlp-ai/compare/v1.3.3...v1.3.4) (2025-02-03)
 
 
