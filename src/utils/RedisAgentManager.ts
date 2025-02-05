@@ -137,6 +137,19 @@ export class RedisAgentManager {
     }
   }
 
+  async getAllAgentIds(): Promise<string[]> {
+    try {
+      // Get all keys matching the agent pools pattern
+      const keys = await this.redis.keys(`${this.AGENT_POOLS_KEY}:*`);
+      
+      // Extract agent IDs from the keys
+      return keys.map(key => key.replace(`${this.AGENT_POOLS_KEY}:`, ''));
+    } catch (error) {
+      logger.error('Error getting all agent IDs:', error);
+      throw error;
+    }
+  }
+
   async cleanup(): Promise<void> {
     try {
       await this.redis.quit();

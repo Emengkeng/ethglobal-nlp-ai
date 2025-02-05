@@ -66,9 +66,13 @@ export class MessageQueue {
         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
         
         await this.initialize();
+
+        // Get all agent IDs from Redis
+        const agentPoolKeys = await this.redisAgentManager.getAllAgentIds();
         
         // Reestablish all agent subscriptions
-        for (const [agentId, pool] of this.agentPools.entries()) {
+        for (const agentId of agentPoolKeys) {
+          const pool = await this.redisAgentManager.getAgentPool(agentId);
           await Promise.all(
             pool.map(agentInstanceId => 
               this.registerAgentInstance(agentId, agentInstanceId)
@@ -88,14 +92,15 @@ export class MessageQueue {
 
   // Dynamic agent pool management
   async registerAgentInstance(agentId: string, instanceId: string): Promise<void> {
-    if (!this.agentPools.has(agentId)) {
-      this.agentPools.set(agentId, []);
-    }
+    await this.redisAgentManager.addAgentToPool(agentId, instanceId);
+    // if (!this.agentPools.has(agentId)) {
+    //   this.agentPools.set(agentId, []);
+    // }
 
-    const pool = this.agentPools.get(agentId)!;
-    if (!pool.includes(instanceId)) {
-      pool.push(instanceId);
-    }
+    // const pool = this.agentPools.get(agentId)!;
+    // if (!pool.includes(instanceId)) {
+    //   pool.push(instanceId);
+    // }
 
     // Setup queue for this specific agent instance
     //const queueName = `agent.${agentId}.${instanceId}`;
@@ -116,20 +121,7 @@ export class MessageQueue {
   }
 
   async selectBestAgentInstance(agentId: string): Promise<string> {
-    const pool = this.agentPools.get(agentId);
-    if (!pool || pool.length === 0) {
-      throw new Error(`No agent instances available for ${agentId}`);
-    }
-
-    // Select instance with least current load
-    const instanceMetrics = pool.map(instanceId => ({
-      instanceId,
-      load: this.agentLoadMetrics.get(instanceId) || 0
-    }));
-
-    return instanceMetrics.reduce((min, current) => 
-      current.load < min.load ? current : min
-    ).instanceId;
+    return this.redisAgentManager.getBestAgentInstance(agentId);
   }
 
   async publishToAgent(
@@ -173,9 +165,7 @@ export class MessageQueue {
     }
 
     // Update load metrics
-    this.agentLoadMetrics.set(selectedInstanceId, 
-      (this.agentLoadMetrics.get(selectedInstanceId) || 0) + 1
-    );
+    await this.redisAgentManager.incrementAgentLoad(selectedInstanceId);
   }
 
   private getPriorityNumber(priority: string): number {
@@ -369,6 +359,7 @@ export class MessageQueue {
         this.connection = undefined;
       }
 
+      await this.redisAgentManager.cleanup();
       logger.info('Advanced message queue connections closed');
     } catch (error) {
       logger.error('Error cleaning up advanced message queue:', error);
