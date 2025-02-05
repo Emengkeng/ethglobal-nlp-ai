@@ -95,7 +95,7 @@ export class AgentLifecycleManager {
     // Check both user and system limits
     await this.checkAgentLimits(userId);
 
-    const agentId = `agent-${userId}-${Date.now()}`;
+    const agentId = `trading-agent-${userId}-${Date.now()}`;
     
     try {
       const containerId = await this.dockerDeployment.deployAgent(userId, agentId);
