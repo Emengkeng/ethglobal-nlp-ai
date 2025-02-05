@@ -1,20 +1,7 @@
 import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/utils/LoggerService';
-
-
-export interface QueueMessage {
-  type: 'command' | 'response' | 'event';
-  payload: any;
-  metadata: {
-    userId: string;
-    agentId: string;
-    timestamp: number;
-    messageId: string;
-    priority: 'low' | 'medium' | 'high';
-    attempts: number;
-  };
-}
+import { QueueMessage } from '@/types';
 
 export class MessageQueue {
   private connection?: Connection;
