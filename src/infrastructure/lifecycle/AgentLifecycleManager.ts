@@ -9,7 +9,10 @@ import {
   MAX_SYSTEM_AGENTS,
   HealthCheckResponse,
   AgentStartupError,
-  HealthCheckTimeoutError
+  HealthCheckTimeoutError,
+  AgentHealthCheckError,
+  QueueMessage,
+  AgentTimeoutError
 } from '@/types'; 
 import { messageQueueSingleton } from '../queue/messageQueueSingleton';
 import { logger } from '@/utils/LoggerService';
@@ -669,5 +672,64 @@ export class AgentLifecycleManager {
       terminatedAgents: states.filter(s => s.status === 'stopping').length,
       failedAgents: states.filter(s => s.status === 'error').length
     };
+  }
+
+  private async performHealthCheck(
+    agentId: string, 
+    timeoutMs: number
+  ): Promise<HealthCheckResponse> {
+    return new Promise((resolve, reject) => {
+      let consumerTag: string | undefined;
+      let timeoutId: NodeJS.Timeout | undefined;
+  
+      const cleanup = async () => {
+        clearTimeout(timeoutId);
+        if (consumerTag) {
+          try {
+            await this.messageQueue.unsubscribeFromAgent(agentId, consumerTag);
+          } catch (error) {
+            logger.warn(`Failed to cleanup health check subscription`, {
+              agentId,
+              consumerTag,
+              error
+            });
+          }
+        }
+      };
+  
+      timeoutId = setTimeout(async () => {
+        await cleanup();
+        reject(new AgentTimeoutError(agentId, timeoutMs));
+      }, timeoutMs);
+  
+      const handleResponse = async (msg: QueueMessage) => {
+        if (msg.type === 'response' && 'status' in msg.payload) {
+          await cleanup();
+          resolve(msg as HealthCheckResponse);
+        }
+      };
+  
+      this.messageQueue.subscribeToAgent(agentId, handleResponse, {
+        filter: (msg) => msg.type === 'response' && 'status' in msg.payload
+      })
+      .then(tag => {
+        consumerTag = tag;
+        return this.messageQueue.publishToAgent(agentId, {
+          type: 'event',
+          payload: {
+            event: 'HEALTH_CHECK',
+            userId: 'system'
+          }
+        });
+      })
+      .catch(async (error) => {
+        await cleanup();
+        reject(new AgentHealthCheckError(
+          'Failed to setup health check',
+          agentId,
+          error instanceof Error ? error : undefined
+        ));
+      });
+    });
   }
 }

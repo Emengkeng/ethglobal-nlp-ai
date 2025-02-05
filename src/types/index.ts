@@ -50,7 +50,7 @@ export class HealthCheckTimeoutError extends Error {
   }
 }
 
-class AgentHealthCheckError extends Error {
+export class AgentHealthCheckError extends Error {
   constructor(
     message: string, 
     public readonly agentId: string,
