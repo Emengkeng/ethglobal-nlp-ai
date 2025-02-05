@@ -1,6 +1,7 @@
 import { AgentService } from '@/services/AgentService';
 import { WalletService } from '@/services/WalletService';
-import { MessageQueue, QueueMessage } from '../queue/MessageQueue';
+import { MessageQueue } from '../queue/MessageQueue';
+import { QueueMessage } from '@/types';
 import { HumanMessage } from '@langchain/core/messages';
 import { messageQueueSingleton } from '../queue/messageQueueSingleton';
 import { logger } from '@/utils/LoggerService';
