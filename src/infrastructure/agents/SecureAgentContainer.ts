@@ -170,13 +170,14 @@ export class SecureAgentContainer {
     }
   }
 
-  private async processUserMessage(message: string): Promise<any> {
+  private async processUserMessage(message: string, requestId: string): Promise<any> {
     if (!message) {
       throw new Error('Empty message received');
     }
 
     logger.info(`Processing user message`, { 
-      messageLength: message.length 
+      messageLength: message.length,
+      requestId 
     });
   
     try {
@@ -192,7 +193,8 @@ export class SecureAgentContainer {
       const responses = [];
       for await (const chunk of stream) {
         logger.info('Processing stream chunk', { 
-          chunkType: chunk && Object.keys(chunk)[0] 
+          chunkType: chunk && Object.keys(chunk)[0],
+          requestId
         });
         
         if ('agent' in chunk) {
@@ -210,7 +212,8 @@ export class SecureAgentContainer {
       
       logger.info(`Message processing completed`, { 
         responseCount: responses.length,
-        responseTypes: responses.map(r => r.type)
+        responseTypes: responses.map(r => r.type),
+        requestId
       });
   
       return responses;
@@ -223,26 +226,27 @@ export class SecureAgentContainer {
     }
   }
 
-  private async sendResponse(originalMessage: QueueMessage, payload: any): Promise<void> {
+  private async sendResponse(originalMessage: QueueMessage, payload: any, requestId: string): Promise<void> {
     await this.messageQueue.publishToAgent(this.agentId, {
       type: 'response',
       payload: {
         ...payload,
-        originalMessageId: originalMessage.metadata.messageId,
+        requestId,
         userId: originalMessage.metadata.userId,
-        correlationId: originalMessage.payload.correlationId
+        //correlationId: originalMessage.payload.correlationId
       },
     });
   }
 
-  private async sendErrorResponse(originalMessage: QueueMessage, error: any): Promise<void> {
+  private async sendErrorResponse(originalMessage: QueueMessage, error: any, requestId?: string): Promise<void> {
     await this.messageQueue.publishToAgent(this.agentId, {
       type: 'response',
       payload: {
         userId: this.userId,
         error: error.message || 'Unknown error',
-        originalMessageId: originalMessage.metadata.messageId,
-        correlationId: originalMessage.payload.correlationId 
+        requestId,
+        //originalMessageId: originalMessage.metadata.messageId,
+        //correlationId: originalMessage.payload.correlationId 
       }
     });
   }
@@ -256,14 +260,14 @@ export class SecureAgentContainer {
     };
   }
 
-  private async importState(state: any): Promise<void> {
-    if (state.wallet) {
-      await WalletService.saveWalletData(state.wallet);
-    }
-    if (state.config) {
-      this.config = state.config;
-    }
-  }
+  // private async importState(state: any): Promise<void> {
+  //   if (state.wallet) {
+  //     await WalletService.saveWalletData(state.wallet);
+  //   }
+  //   if (state.config) {
+  //     this.config = state.config;
+  //   }
+  // }
 
   async cleanup(): Promise<void> {
     try {
