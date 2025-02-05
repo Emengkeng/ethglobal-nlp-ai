@@ -4,7 +4,13 @@ import Redis, { Redis as RedisClient } from 'ioredis';
 import { DockerDeployment } from '@/deployment/DockerDeployment';
 import { AgentState } from './AgentState';
 import { AgentLimitError, AgentTerminationError, getErrorMessage } from './AgentErrors';
-import { MAX_AGENTS_PER_USER, MAX_SYSTEM_AGENTS } from '@/types'; 
+import { 
+  MAX_AGENTS_PER_USER, 
+  MAX_SYSTEM_AGENTS,
+  HealthCheckResponse,
+  AgentStartupError,
+  HealthCheckTimeoutError
+} from '@/types'; 
 import { messageQueueSingleton } from '../queue/messageQueueSingleton';
 import { logger } from '@/utils/LoggerService';
 

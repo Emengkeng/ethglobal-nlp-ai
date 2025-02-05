@@ -27,12 +27,14 @@ export interface SubscriptionOptions {
   filter?: (msg: QueueMessage) => boolean;
 }
 
-export type HealthCheckResponse = {
+
+export interface HealthCheckResponse extends QueueMessage {
   type: 'response';
   payload: {
-    status: string;
+    status: 'healthy' | 'unhealthy';
+    details?: string;
   };
-};
+}
 
 export class AgentStartupError extends Error {
   constructor(message: string, public readonly agentId: string) {
@@ -45,6 +47,24 @@ export class HealthCheckTimeoutError extends Error {
   constructor(message: string, public readonly agentId: string) {
     super(message);
     this.name = 'HealthCheckTimeoutError';
+  }
+}
+
+class AgentHealthCheckError extends Error {
+  constructor(
+    message: string, 
+    public readonly agentId: string,
+    public readonly cause?: Error
+  ) {
+    super(message);
+    this.name = 'AgentHealthCheckError';
+  }
+}
+
+export class AgentTimeoutError extends AgentHealthCheckError {
+  constructor(agentId: string, timeoutMs: number) {
+    super(`Agent ${agentId} health check timed out after ${timeoutMs}ms`, agentId);
+    this.name = 'AgentTimeoutError';
   }
 }
 
