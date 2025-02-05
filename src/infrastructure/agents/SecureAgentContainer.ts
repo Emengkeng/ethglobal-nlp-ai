@@ -4,6 +4,7 @@ import { MessageQueue, QueueMessage } from '../queue/MessageQueue';
 import { HumanMessage } from '@langchain/core/messages';
 import { messageQueueSingleton } from '../queue/messageQueueSingleton';
 import { logger } from '@/utils/LoggerService';
+import { v4 as uuidv4 } from 'uuid'
 
 export class SecureAgentContainer {
   private agent: any;
