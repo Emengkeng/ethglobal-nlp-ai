@@ -299,43 +299,68 @@ export class AgentLifecycleManager {
 
   private async waitForAgentReady(agentId: string): Promise<void> {
     const startTime = Date.now();
-    logger.info(`Waiting for agent ${agentId} to be ready`, { timeout: this.STARTUP_TIMEOUT });
+    const HEALTH_CHECK_TIMEOUT = 50000; // 50 seconds
     
-    while (Date.now() - startTime < this.STARTUP_TIMEOUT) {
-      try {
-        const response = await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            logger.warn(`Health check timeout for agent ${agentId}`);
-            reject(new Error('Health check timeout'));
-          }, 50000);
+    logger.info(`Waiting for agent ${agentId} to be ready`, { 
+      timeout: this.STARTUP_TIMEOUT,
+      healthCheckTimeout: HEALTH_CHECK_TIMEOUT 
+    });
   
-          this.messageQueue.publishToAgent(agentId, {
-            type: 'event',
-            payload: {
-              event: 'HEALTH_CHECK',
-              userId: 'system'
-            }
+    try {
+      while (Date.now() - startTime < this.STARTUP_TIMEOUT) {
+        try {
+          const response = await this.performHealthCheck(agentId, HEALTH_CHECK_TIMEOUT);
+          
+          if (response.payload.status === 'healthy') {
+            logger.info(`Agent ${agentId} is ready`);
+            return;
+          }
+          
+          // If unhealthy, log details and continue retry loop
+          logger.warn(`Agent ${agentId} reported unhealthy status`, {
+            details: response.payload.details
           });
+        } catch (error) {
+          const retryDelay = 1000; // 1 second between retries
+          const elapsedTime = Date.now() - startTime;
+          const attemptsRemaining = Math.floor((this.STARTUP_TIMEOUT - elapsedTime) / retryDelay);
+          
+          if (error instanceof AgentTimeoutError) {
+            logger.warn(`Health check timeout for agent ${agentId}`, {
+              attemptsRemaining,
+              elapsedTime
+            });
+          } else {
+            logger.error(`Error checking agent ${agentId} health`, {
+              error: error instanceof Error ? error.message : String(error),
+              attemptsRemaining,
+              elapsedTime
+            });
+          }
   
-          this.messageQueue.subscribeToAgent(agentId, async (msg) => {
-            if (msg.type === 'response' && msg.payload.status === 'healthy') {
-              clearTimeout(timeout);
-              logger.info(`Agent ${agentId} is ready`);
-              resolve(msg);
-            }
-            return Promise.resolve();
-          });
-        });
-  
-        if (response) return;
-      } catch (error) {
-        logger.info(`Retrying agent readiness check for ${agentId}`, { error });
-        await new Promise(resolve => setTimeout(resolve, 1000));
+          if (attemptsRemaining <= 0) break;
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
       }
-    }
   
-    logger.error(`Agent ${agentId} failed to start within timeout`);
-    throw new Error(`Agent ${agentId} failed to start within timeout`);
+      throw new AgentHealthCheckError(
+        `Agent ${agentId} failed to become ready within ${this.STARTUP_TIMEOUT}ms`,
+        agentId
+      );
+    } catch (error) {
+      // Ensure cleanup of any lingering subscriptions
+      //await this.messageQueue.cleanupHealthCheck(agentId);
+      
+      if (error instanceof AgentHealthCheckError) {
+        throw error;
+      }
+      
+      throw new AgentHealthCheckError(
+        'Unexpected error during agent health check',
+        agentId,
+        error instanceof Error ? error : undefined
+      );
+    }
   }
 
   private async waitForAgentResponse(agentId: string, command: string): Promise<any> {
