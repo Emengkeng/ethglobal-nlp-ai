@@ -3,6 +3,7 @@ import { AgentLifecycleManager } from '../../infrastructure/lifecycle/AgentLifec
 import { MessageQueue } from '../../infrastructure/queue/MessageQueue';
 import { messageQueueSingleton } from '../../infrastructure/queue/messageQueueSingleton';
 import { logger } from '@/utils/LoggerService';
+import { v4 as uuidv4 } from 'uuid';
 
 export class AgentController {
   private lifecycleManager: AgentLifecycleManager;
