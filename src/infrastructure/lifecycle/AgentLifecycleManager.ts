@@ -121,7 +121,7 @@ export class AgentLifecycleManager {
       await this.saveAgentState(state);
 
       // Wait for agent to be ready
-      await this.waitForAgentReady(agentId);
+      //await this.waitForAgentReady(agentId);
       
       state.status = 'active';
       await this.saveAgentState(state);

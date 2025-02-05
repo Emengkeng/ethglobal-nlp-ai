@@ -99,6 +99,10 @@ export class SecureAgentContainer {
           });
           await this.sendErrorResponse(message, error);
         }
+      },
+      { 
+        consumerTag: this.instanceId,
+        filter: (msg) => msg.metadata?.instanceId === this.instanceId 
       }
     );
   }

@@ -93,6 +93,7 @@ export class MessageQueue {
     }
 
     // Setup queue for this specific agent instance
+    //const queueName = `agent.${agentId}.${instanceId}`;
     const queueName = `agent.${agentId}.${instanceId}`;
     
     if (!this.channel) throw new Error('Channel not initialized');
@@ -106,7 +107,7 @@ export class MessageQueue {
       }
     });
 
-    await this.channel.bindQueue(queueName, this.mainExchangeName, `agent.${agentId}.*`);
+    await this.channel.bindQueue(queueName, this.mainExchangeName, `agent.${agentId}.#`);
   }
 
   async selectBestAgentInstance(agentId: string): Promise<string> {
@@ -139,6 +140,7 @@ export class MessageQueue {
       ...message,
       metadata: {
         userId: message.payload.userId,
+        instanceId: message.payload.instanceId,
         agentId,
         timestamp: Date.now(),
         messageId: uuidv4(),
@@ -147,7 +149,10 @@ export class MessageQueue {
       }
     };
 
-    const routingKey = `agent.${agentId}.${selectedInstanceId}.${message.type}`;
+    const routingKey =  message.payload?.instanceId
+      ? `agent.${agentId}.${message.payload.instanceId}.${message.type}`
+      : `agent.${agentId}.${message.type}`;
+      
     const published = this.channel.publish(
       this.mainExchangeName,
       routingKey,
@@ -203,7 +208,11 @@ export class MessageQueue {
       routingKey: `agent.${agentId}.#`
     });
   
-    const queueName = `agent.${agentId}`;
+    const queueName = options?.consumerTag 
+      ? `agent.${agentId}.${options.consumerTag}`
+      : `agent.${agentId}`;
+
+
     logger.info('passed queue Name')
     await this.channel.assertQueue(queueName, { 
       durable: true,
@@ -215,7 +224,10 @@ export class MessageQueue {
     logger.info('passed assertQueue')
 
     // More specific routing key pattern to avoid error
-    const routingKey = `agent.${agentId}.#`;
+    const routingKey = options?.consumerTag 
+      ? `agent.${agentId}.${options.consumerTag}.#`
+      : `agent.${agentId}.#`;
+
     await this.channel.bindQueue(queueName, this.mainExchangeName, routingKey);
 
   

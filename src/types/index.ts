@@ -17,6 +17,7 @@ export interface QueueMessage {
     agentId: string;
     timestamp: number;
     messageId: string;
+    instanceId?: string;
     priority: 'low' | 'medium' | 'high';
     attempts: number;
   };
