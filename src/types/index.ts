@@ -22,6 +22,10 @@ export interface QueueMessage {
   };
 }
 
+export interface SubscriptionOptions {
+  consumerTag?: string;
+  filter?: (msg: QueueMessage) => boolean;
+}
 
 export const MAX_AGENTS_PER_USER = 1;
 export const MAX_SYSTEM_AGENTS = 10;
