@@ -6,7 +6,7 @@ import { QueueMessage, SubscriptionOptions } from '@/types';
 export class MessageQueue {
   private connection?: Connection;
   public channel?: Channel;
-  private readonly exchangeName = 'trading-agents';
+  //private readonly exchangeName = 'trading-agents';
   private readonly mainExchangeName = 'trading-agents-advanced';
   private readonly deadLetterExchangeName = 'trading-agents-dlx';
 
@@ -205,7 +205,7 @@ export class MessageQueue {
   
     const queueName = `agent.${agentId}`;
     await this.channel.assertQueue(queueName, { durable: true });
-    await this.channel.bindQueue(queueName, this.exchangeName, `agent.${agentId}.*`);
+    await this.channel.bindQueue(queueName, this.mainExchangeName, `agent.${agentId}.*`);
   
     const { consumerTag } = await this.channel.consume(
       queueName, 
