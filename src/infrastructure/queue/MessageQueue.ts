@@ -52,6 +52,19 @@ export class MessageQueue {
     }
   }
 
+  private setupConnectionRecovery() {
+    if (!this.connection) return;
+
+    this.connection.on('close', async () => {
+      logger.warn('Connection closed, initiating intelligent reconnection');
+      await this.intelligentReconnect();
+    });
+
+    this.connection.on('error', (err) => {
+      logger.error('RabbitMQ Connection Error:', err);
+    });
+  }
+
   async reconnect(retries = 5): Promise<void> {
     for (let i = 0; i < retries; i++) {
       try {
