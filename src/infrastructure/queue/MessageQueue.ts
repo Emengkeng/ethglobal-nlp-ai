@@ -1,4 +1,5 @@
 import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
+import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/utils/LoggerService';
 
 
@@ -17,6 +18,12 @@ export class MessageQueue {
   private connection?: Connection;
   public channel?: Channel;
   private readonly exchangeName = 'trading-agents';
+  private readonly mainExchangeName = 'trading-agents-advanced';
+  private readonly deadLetterExchangeName = 'trading-agents-dlx';
+
+  // Load balancing configuration
+  private agentPools: Map<string, string[]> = new Map();
+  private agentLoadMetrics: Map<string, number> = new Map();
   
   constructor(
     private readonly url: string = process.env.RABBITMQ_URL || 'amqp://user:password@localhost:5672'
@@ -27,12 +34,18 @@ export class MessageQueue {
       this.connection = await amqp.connect(this.url);
       this.channel = await this.connection.createChannel();
       
-      await this.channel.assertExchange(this.exchangeName, 'topic', { durable: true });
-      
-      this.connection.on('close', async () => {
-        logger.info('Connection closed, reconnecting...');
-        await this.reconnect();
+      // Setup main exchange
+      await this.channel.assertExchange(this.mainExchangeName, 'topic', { 
+        durable: true,
+        arguments: {
+          'x-ha-policy': 'all' // Enable queue mirroring for high availability
+        }
       });
+
+      // Setup dead-letter exchange
+      await this.channel.assertExchange(this.deadLetterExchangeName, 'topic', { durable: true });
+      
+      this.setupConnectionRecovery();
     } catch (error) {
       logger.error('Failed to initialize message queue:', error);
       throw error;
