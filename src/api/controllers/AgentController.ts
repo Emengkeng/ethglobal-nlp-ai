@@ -15,15 +15,41 @@ export class AgentController {
   }
 
   async handleMessage(req: Request, res: Response) {
-    const { userId, message } = req.body;
+    const { userId, message, priority = 'medium' } = req.body;
 
     try {
-      logger.info(`Handling message for user: ${userId}`);
+      logger.info(`Handling message for user: ${userId}`, { priority });
       
       const agentId = await this.lifecycleManager.handleUserActivity(userId);
       logger.info(`Agent ID assigned: ${agentId}`);
 
-      const response = await this.sendMessageToAgent(agentId, userId, message);
+      // Generate a unique request ID for comprehensive tracking
+      const requestId = uuidv4();
+
+      // Use message queue with priority and request tracking
+      const responsePromise = this.waitForAgentResponse(agentId, userId, requestId);
+
+      // Publish message with routing
+      await messageQueueSingleton.publishToAgent(agentId, {
+        type: 'command',
+        payload: {
+          command: 'PROCESS_MESSAGE',
+          userId,
+          message,
+          requestId,
+          priority
+        }
+      });
+
+      // Wait for response with timeout
+      const response = await Promise.race([
+        responsePromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Agent response timeout')), 30000)
+        )
+      ]);
+
+      //const response = await this.sendMessageToAgent(agentId, userId, message);
       
       logger.info(`Message processed successfully for user: ${userId}`);
       res.json({ success: true, response });
