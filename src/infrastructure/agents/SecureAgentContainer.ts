@@ -25,7 +25,8 @@ export class SecureAgentContainer {
     try {
       logger.info(`Initializing SecureAgentContainer`, { 
         userId: this.userId, 
-        agentId: this.agentId 
+        agentId: this.agentId,
+        instanceId: this.instanceId
       });
   
       const { agent, config } = await AgentService.initialize();
@@ -36,12 +37,19 @@ export class SecureAgentContainer {
   
       this.agent = agent;
       this.config = config;
+
+      // Register this specific agent instance
+      await messageQueueSingleton.registerAgentInstance(
+        this.agentId, 
+        this.instanceId
+      );
   
       await this.subscribeToMessages();
       
       logger.info(`Agent container fully initialized`, { 
         userId: this.userId, 
-        agentId: this.agentId 
+        agentId: this.agentId,
+        instanceId: this.instanceId
       });
     } catch (error) {
       logger.error(`Initialization failed`, { 
