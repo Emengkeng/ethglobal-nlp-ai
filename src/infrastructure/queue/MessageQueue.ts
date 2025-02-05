@@ -2,6 +2,7 @@ import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/utils/LoggerService';
 import { QueueMessage, SubscriptionOptions } from '@/types';
+import { RedisAgentManager } from '@/utils/RedisAgentManager';
 
 export class MessageQueue {
   private connection?: Connection;
@@ -9,14 +10,18 @@ export class MessageQueue {
   //private readonly exchangeName = 'trading-agents';
   private readonly mainExchangeName = 'trading-agents-advanced';
   private readonly deadLetterExchangeName = 'trading-agents-dlx';
+  private redisAgentManager: RedisAgentManager;
 
   // Load balancing configuration
   private agentPools: Map<string, string[]> = new Map();
   private agentLoadMetrics: Map<string, number> = new Map();
   
   constructor(
-    private readonly url: string = process.env.RABBITMQ_URL || 'amqp://user:password@localhost:5672'
-  ) {}
+    private readonly url: string = process.env.RABBITMQ_URL || 'amqp://user:password@localhost:5672',
+    private readonly redisUrl: string = process.env.REDIS_URL || 'redis://localhost:6379'
+  ) {
+    this.redisAgentManager = new RedisAgentManager(redisUrl);
+  }
 
   async initialize(): Promise<void> {
     try {
