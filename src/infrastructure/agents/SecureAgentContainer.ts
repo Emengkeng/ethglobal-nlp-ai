@@ -11,11 +11,13 @@ export class SecureAgentContainer {
   private config: any;
   private readonly userId: string;
   private readonly agentId: string;
+  private readonly instanceId: string;
   private messageQueue: MessageQueue;
 
   constructor(userId: string, agentId: string) {
     this.userId = userId;
     this.agentId = agentId;
+    this.instanceId = uuidv4(); // Unique instance identifier
     this.messageQueue = messageQueueSingleton;
   }
 
