@@ -6,4 +6,5 @@ export const messageQueueSingleton = new MessageQueue();
 // Initialize the message queue at app startup
 export async function initializeMessageQueue() {
   await messageQueueSingleton.initialize();
+  await messageQueueSingleton.setupDeadLetterHandling();
 }
