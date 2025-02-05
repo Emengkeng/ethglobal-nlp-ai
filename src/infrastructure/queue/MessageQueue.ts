@@ -210,24 +210,60 @@ export class MessageQueue {
     const { consumerTag } = await this.channel.consume(
       queueName, 
       async (msg: ConsumeMessage | null) => {
-        if (!msg) return;
+        if (!msg) {
+          logger.warn('Received null message after subscribing to agent queue', { queueName });
+          return}
+        ;
         
         try {
+          logger.info('Processing message', { 
+            queueName, 
+            contentLength: msg.content.length 
+          });
+
           const message: QueueMessage = JSON.parse(msg.content.toString());
+
+          logger.info('Parsed message', { 
+            messageType: message.type,
+            agentId 
+          });
+
           if (!options?.filter || options.filter(message)) {
+
+            logger.info('Executing message callback', { 
+              messageType: message.type,
+              agentId 
+            });
+
             await callback(message);
             this.channel?.ack(msg);
+            logger.info('Message processed successfully', { agentId });
           } else {
             // If message doesn't pass filter, reject without requeue
+            logger.warn('Message filtered out', { 
+              messageType: message.type,
+              agentId 
+            });
             this.channel?.reject(msg, false);
           }
         } catch (error) {
-          logger.error('Error processing message:', error);
+          logger.error('Error processing message', { 
+            error: error instanceof Error ? error.message : 'Unknown error',
+            queueName,
+            agentId
+          });
           
-          if (error instanceof SyntaxError) {
-            this.channel?.reject(msg, false);
-          } else {
-            this.channel?.nack(msg, false, !msg.fields.redelivered);
+          if (msg) {
+            if (error instanceof SyntaxError) {
+              logger.error('Syntax error parsing message', { agentId });
+              this.channel?.reject(msg, false);
+            } else {
+              logger.error('Message processing error', { 
+                agentId,
+                redelivered: !msg.fields.redelivered 
+              });
+              this.channel?.nack(msg, false, !msg.fields.redelivered);
+            }
           }
         }
       },
