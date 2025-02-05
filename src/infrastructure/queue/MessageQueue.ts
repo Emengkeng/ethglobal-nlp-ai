@@ -1,7 +1,7 @@
 import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/utils/LoggerService';
-import { QueueMessage } from '@/types';
+import { QueueMessage, SubscriptionOptions } from '@/types';
 
 export class MessageQueue {
   private connection?: Connection;
@@ -193,7 +193,7 @@ export class MessageQueue {
   async subscribeToAgent(
     agentId: string, 
     callback: (msg: QueueMessage) => Promise<void>,
-    options?: { consumerTag?: string }
+    options?: SubscriptionOptions
   ): Promise<string> {
     if (!this.channel) throw new Error('Queue not initialized');
 
@@ -214,8 +214,13 @@ export class MessageQueue {
         
         try {
           const message: QueueMessage = JSON.parse(msg.content.toString());
-          await callback(message);
-          this.channel?.ack(msg);
+          if (!options?.filter || options.filter(message)) {
+            await callback(message);
+            this.channel?.ack(msg);
+          } else {
+            // If message doesn't pass filter, reject without requeue
+            this.channel?.reject(msg, false);
+          }
         } catch (error) {
           logger.error('Error processing message:', error);
           
