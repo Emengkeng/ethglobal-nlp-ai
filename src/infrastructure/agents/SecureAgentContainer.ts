@@ -99,12 +99,11 @@ export class SecureAgentContainer {
         await this.sendErrorResponse(message, error);
       }
     },
-    {
-      // Optional: Add instance-specific filtering
-      filter: (msg) => 
-        msg.metadata.agentId === this.agentId && 
-        msg.type === 'command'
-    }
+    // {
+    //   filter: (msg) => 
+    //     msg.metadata.agentId === this.agentId && 
+    //     msg.type === 'command'
+    // }
   );
   }
 
@@ -158,11 +157,11 @@ export class SecureAgentContainer {
   }
 
   private async handleEvent(message: QueueMessage): Promise<void> {
-    const { event } = message.payload;
+    const { event, requestId } = message.payload;
 
     switch (event) {
       case 'HEALTH_CHECK':
-        await this.sendResponse(message, { status: 'healthy' });
+        await this.sendResponse(message, { status: 'healthy' }, requestId);
         break;
 
       default:
