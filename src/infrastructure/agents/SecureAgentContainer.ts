@@ -40,7 +40,7 @@ export class SecureAgentContainer {
       this.config = config;
 
       // Register this specific agent instance
-      await messageQueueSingleton.registerAgentInstance(
+      await this.messageQueue.registerAgentInstance(
         this.agentId, 
         this.instanceId
       );

@@ -616,7 +616,7 @@ export class AgentLifecycleManager {
         try {
           await Promise.race([
             //DeclaredAgentId = state.agentId,
-            this.killAgent(state.userId),
+            this.killAgent(state.agentId),
             new Promise((_, reject) => 
               setTimeout(() => reject(new Error('Timeout')), 30000) // 30 second timeout
             )
