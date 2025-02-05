@@ -204,9 +204,13 @@ export class MessageQueue {
     });
   
     const queueName = `agent.${agentId}`;
+    logger.info('passed queue Name')
     await this.channel.assertQueue(queueName, { durable: true });
+    logger.info('passed assertQueue')
     await this.channel.bindQueue(queueName, this.mainExchangeName, `agent.${agentId}.*`);
+
   
+    logger.info('Starting message consumtion')
     const { consumerTag } = await this.channel.consume(
       queueName, 
       async (msg: ConsumeMessage | null) => {
