@@ -62,12 +62,18 @@ export class SecureAgentContainer {
   }
 
   private async subscribeToMessages(): Promise<void> {
-    logger.info(`Setting up message subscription`, { agentId: this.agentId });
+    logger.info(`Setting up message subscription`, { 
+      agentId: this.agentId,
+      instanceId: this.instanceId 
+    });
     
-    await this.messageQueue.subscribeToAgent(this.agentId, async (message: QueueMessage) => {
+    await this.messageQueue.subscribeToAgent(
+      this.agentId, 
+      async (message: QueueMessage) => {
       logger.info(`Received message`, { 
         type: message.type, 
-        agentId: this.agentId 
+        agentId: this.agentId,
+        instanceId: this.instanceId
       });
   
       try {
@@ -92,7 +98,14 @@ export class SecureAgentContainer {
         });
         await this.sendErrorResponse(message, error);
       }
-    });
+    },
+    {
+      // Optional: Add instance-specific filtering
+      filter: (msg) => 
+        msg.metadata.agentId === this.agentId && 
+        msg.type === 'command'
+    }
+  );
   }
 
   private async handleCommand(message: QueueMessage): Promise<void> {
