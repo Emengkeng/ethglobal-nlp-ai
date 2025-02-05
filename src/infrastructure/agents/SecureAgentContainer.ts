@@ -109,12 +109,12 @@ export class SecureAgentContainer {
   }
 
   private async handleCommand(message: QueueMessage): Promise<void> {
-    const { command } = message.payload;
+    const { command, requestId  } = message.payload;
     
     logger.info(`Processing command`, { 
       command, 
       userId: message.payload.userId,
-      correlationId: message.payload.correlationId 
+      requestId  
     });
   
     try {
@@ -123,18 +123,21 @@ export class SecureAgentContainer {
           logger.info(`Executing message processing`, { 
             userId: message.payload.userId,
             messageLength: message.payload.message.length,
-            correlationId: message.payload.correlationId 
+            requestId 
           });
           
-          const response = await this.processUserMessage(message.payload.message);
+          const response = await this.processUserMessage(
+            message.payload.message,
+            requestId
+          );
           
           logger.info(`Message processed successfully`, {
             userId: message.payload.userId,
             responseCount: response.length,
-            correlationId: message.payload.correlationId
+            requestId
           });
           
-          await this.sendResponse(message, response);
+          await this.sendResponse(message, response, requestId);
           break;
   
         default:
