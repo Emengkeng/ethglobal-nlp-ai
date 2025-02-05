@@ -65,6 +65,33 @@ export class MessageQueue {
     });
   }
 
+  async intelligentReconnect(maxRetries = 5): Promise<void> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+        
+        await this.initialize();
+        
+        // Reestablish all agent subscriptions
+        for (const [agentId, pool] of this.agentPools.entries()) {
+          await Promise.all(
+            pool.map(agentInstanceId => 
+              this.registerAgentInstance(agentId, agentInstanceId)
+            )
+          );
+        }
+
+        logger.info('Intelligent reconnection successful');
+        return;
+      } catch (error) {
+        logger.error(`Reconnection attempt ${attempt + 1} failed:`, error);
+      }
+    }
+    
+    throw new Error('Failed to reconnect to message queue after multiple attempts');
+  }
+
   async reconnect(retries = 5): Promise<void> {
     for (let i = 0; i < retries; i++) {
       try {
