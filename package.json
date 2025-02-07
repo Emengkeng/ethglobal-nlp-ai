@@ -16,6 +16,7 @@
     "@langchain/core": "^0.3.37",
     "@langchain/langgraph": "latest",
     "@langchain/openai": "^0.4.2",
+    "crypto": "^1.0.1",
     "dotenv": "^16.0.3",
     "express": "^4.21.2",
     "openai": "^4.82.0",
