@@ -19,7 +19,7 @@ export class AgentService {
         baseURL: 'https://api.x.ai/v1'
       };
 
-      // Use LangChain's ChatOpenAI wrapper
+      // Use LangChain's ChatOpenAI wrapper with explicit configuration
       const llm = new ChatOpenAI({
         modelName: 'grok-2-1212',
         openAIApiKey: openAIConfig.apiKey,
@@ -29,7 +29,11 @@ export class AgentService {
             'Content-Type': 'application/json'
           }
         }
-      });
+      },);
+
+      // Set the API key in process.env as a fallback
+      process.env.OPENAI_API_KEY = openAIConfig.apiKey;
+      process.env.OPENAI_API_BASE = openAIConfig.baseURL;
 
       const walletDataStr = await WalletService.loadWalletData();
       
