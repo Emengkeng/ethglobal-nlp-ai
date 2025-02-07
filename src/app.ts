@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import chatRoutes from './routes/chat.routes';
 import { EnvironmentConfig } from './config/environment';
 import { ChatAPIController } from './controllers/chatAPI.controller';
+import { WalletService } from './services/WalletService';
 
 export class App {
   private app: Application;
@@ -17,6 +18,7 @@ export class App {
   private async initialize(): Promise<void> {
     EnvironmentConfig.initialize();
     await this.chatController.initialize();
+    await WalletService.initialize();
   }
 
   private initializeMiddlewares(): void {
