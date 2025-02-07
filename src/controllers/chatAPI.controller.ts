@@ -6,22 +6,21 @@ export class ChatAPIController {
   private agent: any;
   private config: any;
 
-  constructor() {
-    this.initializeAgent();
-  }
+  constructor() {}
 
-  private async initializeAgent() {
+  public async initialize(): Promise<void> {
     const { agent, config } = await AgentService.initialize();
     this.agent = agent;
     this.config = config;
   }
 
-  chat = async (req: Request, res: Response) => {
+  public chat = async (req: Request, res: Response): Promise<void> => {
     try {
       const { message } = req.body;
       
       if (!message) {
-        return res.status(400).json({ error: 'Message is required' });
+        res.status(400).json({ error: 'Message is required' });
+        return;
       }
 
       const stream = await this.agent.stream(
@@ -46,11 +45,12 @@ export class ChatAPIController {
 
       res.json({ responses });
     } catch (error) {
+      console.error(error);
       res.status(500).json({ error: 'Failed to process chat message' });
     }
   };
 
-  getStatus = async (_req: Request, res: Response) => {
+  public getStatus = async (_req: Request, res: Response): Promise<void> => {
     try {
       res.json({ status: 'active' });
     } catch (error) {
